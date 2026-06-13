@@ -1,267 +1,258 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import useSWR from 'swr';
+import { CalendarClock, Medal, Pencil, Plus, Users } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
+import { COURSE_OPTIONS, YEAR_LEVEL_OPTIONS, type CourseOption, type YearLevelOption } from '@/lib/school-options';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/data-table';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { Eye, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
-interface Student {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  enrollmentDate: string;
-  progress: number;
-  competenciesCompleted: number;
-  totalCompetencies: number;
-  attendanceRate: number;
-  ojtHours: number;
-  riskLevel: 'critical' | 'high' | 'medium' | 'low' | 'none';
-  lastActivity: string;
-}
+type CandidateRecord = {
+  _id: string;
+  studentId: string;
+  course?: CourseOption;
+  yearLevel?: YearLevelOption;
+  status: 'active' | 'inactive' | 'graduated' | 'dropped';
+  qualifications?: unknown[];
+  currentCompetencies?: unknown[];
+  completedCompetencies?: unknown[];
+  lastAssessmentDate?: string;
+  user?: {
+    firstName: string;
+    lastName: string;
+    email?: string;
+  };
+};
 
-export default function StudentManagementPage() {
-  const [students] = useState<Student[]>([
-    {
-      id: '1',
-      firstName: 'Maria',
-      lastName: 'Garcia',
-      email: 'maria@example.com',
-      enrollmentDate: '2024-01-15',
-      progress: 65,
-      competenciesCompleted: 4,
-      totalCompetencies: 8,
-      attendanceRate: 92,
-      ojtHours: 120,
-      riskLevel: 'low',
-      lastActivity: '2024-05-24',
-    },
-    {
-      id: '2',
-      firstName: 'Carlos',
-      lastName: 'Santos',
-      email: 'carlos@example.com',
-      enrollmentDate: '2024-01-15',
-      progress: 45,
-      competenciesCompleted: 3,
-      totalCompetencies: 8,
-      attendanceRate: 78,
-      ojtHours: 80,
-      riskLevel: 'medium',
-      lastActivity: '2024-05-20',
-    },
-    {
-      id: '3',
-      firstName: 'Ana',
-      lastName: 'Reyes',
-      email: 'ana@example.com',
-      enrollmentDate: '2024-01-15',
-      progress: 25,
-      competenciesCompleted: 1,
-      totalCompetencies: 8,
-      attendanceRate: 55,
-      ojtHours: 30,
-      riskLevel: 'critical',
-      lastActivity: '2024-05-10',
-    },
-  ]);
+const defaultForm = {
+  userId: '',
+  studentId: '',
+  course: 'IT' as CourseOption,
+  yearLevel: '1st Year' as YearLevelOption,
+  status: 'active' as CandidateRecord['status'],
+};
 
-  const getRiskColor = (level: string) => {
-    const colors: Record<string, string> = {
-      critical: 'bg-red-100 text-red-800',
-      high: 'bg-orange-100 text-orange-800',
-      medium: 'bg-yellow-100 text-yellow-800',
-      low: 'bg-blue-100 text-blue-800',
-      none: 'bg-green-100 text-green-800',
-    };
-    return colors[level] || 'bg-gray-100 text-gray-800';
+export default function CandidateManagementPage() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingCandidate, setEditingCandidate] = useState<CandidateRecord | null>(null);
+  const [formData, setFormData] = useState(defaultForm);
+  const [courseFilter, setCourseFilter] = useState('');
+  const [yearFilter, setYearFilter] = useState('');
+  const [formError, setFormError] = useState('');
+
+  const { data: candidates = [], isLoading, mutate } = useSWR<CandidateRecord[]>(
+    '/students',
+    (url: string) => apiClient.get<CandidateRecord[]>(url)
+  );
+
+  const filteredCandidates = useMemo(() => {
+    return candidates.filter((candidate) => {
+      const matchesCourse = !courseFilter || candidate.course === courseFilter;
+      const matchesYear = !yearFilter || candidate.yearLevel === yearFilter;
+      return matchesCourse && matchesYear;
+    });
+  }, [candidates, courseFilter, yearFilter]);
+
+  const activeCount = filteredCandidates.filter((candidate) => candidate.status === 'active').length;
+  const completedCompetencies = filteredCandidates.reduce((sum, candidate) => sum + (candidate.completedCompetencies?.length ?? 0), 0);
+
+  const openCreateDialog = () => {
+    setEditingCandidate(null);
+    setFormData(defaultForm);
+    setFormError('');
+    setDialogOpen(true);
   };
 
-  const columns: Column<Student>[] = [
+  const openEditDialog = (candidate: CandidateRecord) => {
+    setEditingCandidate(candidate);
+    setFormData({
+      userId: '',
+      studentId: candidate.studentId,
+      course: candidate.course ?? 'IT',
+      yearLevel: candidate.yearLevel ?? '1st Year',
+      status: candidate.status,
+    });
+    setFormError('');
+    setDialogOpen(true);
+  };
+
+  const saveCandidate = async () => {
+    setFormError('');
+    try {
+      if (editingCandidate) {
+        await apiClient.put(`/students/${editingCandidate._id}`, {
+          course: formData.course,
+          yearLevel: formData.yearLevel,
+          status: formData.status,
+        });
+      } else {
+        await apiClient.post('/students', formData);
+      }
+      setDialogOpen(false);
+      await mutate();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Unable to save student record');
+    }
+  };
+
+  const columns: Column<CandidateRecord>[] = [
     {
-      key: 'firstName',
-      label: 'Student Name',
+      key: 'studentId',
+      label: 'Candidate',
+      searchable: true,
+      render: (_value, row) => (
+        <div>
+          <p className="font-medium">{row.user ? `${row.user.firstName} ${row.user.lastName}` : row.studentId}</p>
+          <p className="text-xs text-muted-foreground">{row.studentId}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'course',
+      label: 'Course',
       sortable: true,
-      searchable: true,
-      render: (value: string, row: Student) => `${row.firstName} ${row.lastName}`,
+      render: (value?: string) => value ?? '-',
     },
     {
-      key: 'email',
-      label: 'Email',
-      searchable: true,
+      key: 'yearLevel',
+      label: 'Year Level',
+      sortable: true,
+      render: (value?: string) => value ?? '-',
     },
     {
-      key: 'progress',
-      label: 'Progress',
-      render: (value: number) => (
-        <div className="w-32">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium">{value}%</span>
-          </div>
-          <Progress value={value} className="h-2" />
-        </div>
-      ),
+      key: 'status',
+      label: 'Status',
+      render: (value: string) => <Badge variant="outline">{value}</Badge>,
     },
     {
-      key: 'competenciesCompleted',
-      label: 'Competencies',
-      render: (value: number, row: Student) => (
-        <div className="text-sm">
-          <div className="font-medium">{value}/{row.totalCompetencies}</div>
-        </div>
-      ),
+      key: 'qualifications',
+      label: 'Qualifications',
+      render: (_value, row) => row.qualifications?.length ?? 0,
     },
     {
-      key: 'attendanceRate',
-      label: 'Attendance',
-      render: (value: number) => (
-        <Badge variant={value >= 80 ? 'default' : 'secondary'}>
-          {value}%
-        </Badge>
-      ),
+      key: 'completedCompetencies',
+      label: 'Completed Competencies',
+      render: (_value, row) => `${row.completedCompetencies?.length ?? 0}/${(row.currentCompetencies?.length ?? 0) + (row.completedCompetencies?.length ?? 0)}`,
     },
     {
-      key: 'riskLevel',
-      label: 'Risk Level',
-      render: (value: string) => (
-        <Badge className={getRiskColor(value)}>{value}</Badge>
+      key: 'lastAssessmentDate',
+      label: 'Last Assessment',
+      render: (value?: string) => value ? new Date(value).toLocaleDateString() : '-',
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (_value, row) => (
+        <Button variant="ghost" size="sm" onClick={() => openEditDialog(row)} aria-label={`Edit ${row.studentId}`}>
+          <Pencil className="h-4 w-4" />
+        </Button>
       ),
     },
   ];
 
-  const atRiskCount = students.filter(
-    (s) => s.riskLevel === 'critical' || s.riskLevel === 'high'
-  ).length;
-
   return (
     <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">My Students</h1>
-          <p className="text-muted-foreground mt-1">
-            Monitor student progress and performance
-          </p>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Students
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{students.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Avg. Progress
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {Math.round(
-                  students.reduce((acc, s) => acc + s.progress, 0) /
-                    students.length
+      <div className="mx-auto max-w-7xl space-y-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Candidate Management</h1>
+            <p className="text-muted-foreground">View student/candidate records for TESDA assessment scheduling.</p>
+          </div>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreateDialog}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Student Record
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingCandidate ? 'Edit Student Record' : 'Create Student Record'}</DialogTitle>
+                <DialogDescription>Course and year level use fixed TESDA tracker options only.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                {!editingCandidate && (
+                  <Input placeholder="User ID" value={formData.userId} onChange={(event) => setFormData({ ...formData, userId: event.target.value })} />
                 )}
-                %
+                <Input
+                  placeholder="Student ID"
+                  value={formData.studentId}
+                  onChange={(event) => setFormData({ ...formData, studentId: event.target.value })}
+                  disabled={Boolean(editingCandidate)}
+                />
+                <select className="w-full rounded-md border bg-background px-3 py-2 text-sm" value={formData.course} onChange={(event) => setFormData({ ...formData, course: event.target.value as CourseOption })}>
+                  {COURSE_OPTIONS.map((course) => <option key={course} value={course}>{course}</option>)}
+                </select>
+                <select className="w-full rounded-md border bg-background px-3 py-2 text-sm" value={formData.yearLevel} onChange={(event) => setFormData({ ...formData, yearLevel: event.target.value as YearLevelOption })}>
+                  {YEAR_LEVEL_OPTIONS.map((yearLevel) => <option key={yearLevel} value={yearLevel}>{yearLevel}</option>)}
+                </select>
+                <select className="w-full rounded-md border bg-background px-3 py-2 text-sm" value={formData.status} onChange={(event) => setFormData({ ...formData, status: event.target.value as CandidateRecord['status'] })}>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="graduated">Graduated</option>
+                  <option value="dropped">Dropped</option>
+                </select>
+                {formError && <p className="text-sm text-red-600">{formError}</p>}
+                <Button className="w-full" onClick={saveCandidate}>{editingCandidate ? 'Save Changes' : 'Create Student Record'}</Button>
               </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Total Candidates</p>
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-3xl font-bold">{filteredCandidates.length}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                High Attendance
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {students.filter((s) => s.attendanceRate >= 80).length}
+            <CardContent className="pt-6">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Active Candidates</p>
+                <CalendarClock className="h-5 w-5 text-primary" />
               </div>
+              <p className="text-3xl font-bold">{activeCount}</p>
             </CardContent>
           </Card>
-          <Card className={atRiskCount > 0 ? 'border-red-200 bg-red-50' : ''}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                {atRiskCount > 0 && <AlertCircle className="w-4 h-4 text-red-600" />}
-                At-Risk Students
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{atRiskCount}</div>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Completed Competencies</p>
+                <Medal className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-3xl font-bold">{completedCompetencies}</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Data Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Student List</CardTitle>
-            <CardDescription>
-              View all students, their progress, and risk status
-            </CardDescription>
+            <CardTitle>Candidate Roster</CardTitle>
+            <CardDescription>Candidates available for assessment schedules.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <DataTable
-              data={students}
-              columns={columns}
-              pageSize={10}
-              selectable={true}
-              emptyMessage="No students enrolled yet"
-            />
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <select className="rounded-md border bg-background px-3 py-2 text-sm" value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)}>
+                <option value="">All Courses</option>
+                {COURSE_OPTIONS.map((course) => <option key={course} value={course}>{course}</option>)}
+              </select>
+              <select className="rounded-md border bg-background px-3 py-2 text-sm" value={yearFilter} onChange={(event) => setYearFilter(event.target.value)}>
+                <option value="">All Year Levels</option>
+                {YEAR_LEVEL_OPTIONS.map((yearLevel) => <option key={yearLevel} value={yearLevel}>{yearLevel}</option>)}
+              </select>
+            </div>
+            <DataTable data={filteredCandidates} columns={columns} loading={isLoading} emptyMessage="No candidates found" />
           </CardContent>
         </Card>
-
-        {/* At-Risk Students Section */}
-        {atRiskCount > 0 && (
-          <Card className="mt-8 border-orange-200 bg-orange-50">
-            <CardHeader>
-              <CardTitle className="text-orange-900">
-                Students Requiring Attention
-              </CardTitle>
-              <CardDescription>
-                {atRiskCount} student(s) showing risk indicators
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {students
-                  .filter(
-                    (s) =>
-                      s.riskLevel === 'critical' || s.riskLevel === 'high'
-                  )
-                  .map((student) => (
-                    <div
-                      key={student.id}
-                      className="flex items-start justify-between gap-4 p-4 bg-white rounded-lg border border-orange-200"
-                    >
-                      <div className="flex-1">
-                        <div className="font-semibold text-foreground">
-                          {student.firstName} {student.lastName}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          Progress: {student.progress}% • Attendance:{' '}
-                          {student.attendanceRate}% • OJT: {student.ojtHours}
-                          h
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        <Eye className="w-4 h-4 mr-2" />
-                        Review
-                      </Button>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );

@@ -3,7 +3,6 @@
 import { Link } from 'react-router-dom';
 import useSWR from 'swr';
 import { Award, BookOpen, CheckCircle2 } from 'lucide-react';
-import { DashboardLayout } from '@/components/dashboard-layout';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +28,7 @@ export default function StudentCompetenciesListPage() {
   if (isLoading) return <LoadingSkeleton />;
 
   return (
-    <DashboardLayout role="student">
+    <div className="p-8">
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">My Competencies</h1>
@@ -105,6 +104,6 @@ export default function StudentCompetenciesListPage() {
           </Card>
         )}
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

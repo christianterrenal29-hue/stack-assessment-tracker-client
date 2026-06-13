@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { DashboardLayout } from '@/components/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -152,7 +151,7 @@ export default function CompetenciesPage() {
   if (isLoading) return <LoadingSkeleton />;
 
   return (
-    <DashboardLayout>
+    <div className="p-8">
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-900">Competencies</h1>
@@ -250,6 +249,6 @@ export default function CompetenciesPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

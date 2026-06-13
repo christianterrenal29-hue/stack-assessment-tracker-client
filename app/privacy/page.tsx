@@ -12,13 +12,13 @@ export default function PrivacyPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-muted-foreground">
             <p>
-              TESDA Assessment Tracker stores account, learner, assessment, attendance, OJT,
-              document, and audit information needed to operate training and assessment workflows.
+              TESDA Assessment Tracker stores account, candidate, assessment schedule, attendance,
+              competency result, document, and audit information needed to operate TESDA assessment workflows.
             </p>
             <p>
-              Access is limited by role. Administrators manage institutional records, instructors
-              maintain learner activity, assessors grade submissions, and students view their own
-              progress records.
+              Access is limited by role. Administrators manage institutional records, assessment
+              coordinators maintain schedules and candidate lists, assessors record assessment outcomes,
+              and students view their own candidate records.
             </p>
             <p>
               Uploaded documents and audit records should be handled according to institutional

@@ -3,6 +3,7 @@
 import { Sidebar } from './sidebar';
 import { Header } from './header';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '@/context/auth-context';
 
 type DashboardRole = 'administrator' | 'instructor' | 'assessor' | 'student';
 
@@ -27,7 +28,9 @@ export function DashboardLayout({
   unreadNotifications = 0,
 }: DashboardLayoutProps) {
   const { pathname } = useLocation();
-  const resolvedRole = role ?? inferRoleFromPath(pathname);
+  const { user } = useAuth();
+  const resolvedRole = role ?? user?.role ?? inferRoleFromPath(pathname);
+  const resolvedUserName = user ? `${user.firstName} ${user.lastName}` : userName;
 
   return (
     <div className="flex h-screen bg-background">
@@ -37,7 +40,7 @@ export function DashboardLayout({
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <Header userName={userName} unreadNotifications={unreadNotifications} />
+        <Header userName={resolvedUserName} unreadNotifications={unreadNotifications} />
 
         {/* Page Content */}
         <main className="flex-1 overflow-auto">

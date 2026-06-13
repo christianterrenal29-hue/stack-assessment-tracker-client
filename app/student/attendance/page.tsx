@@ -1,9 +1,9 @@
 'use client';
 
 import useSWR from 'swr';
-import { CalendarCheck, Clock } from 'lucide-react';
-import { DashboardLayout } from '@/components/dashboard-layout';
+import { CalendarCheck } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { AssessmentSchedule, StudentSummary } from '@/lib/assessment-types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSkeleton } from '@/components/loading-skeleton';
@@ -16,77 +16,62 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-type AttendanceRecord = {
-  _id: string;
-  date: string;
-  status: 'present' | 'absent' | 'late' | 'excused';
-  hoursAttended?: number;
-  notes?: string;
-};
-
-type AttendanceStats = {
-  total: number;
-  present: number;
-  absent: number;
-  late: number;
-  excused: number;
-  totalHours: number;
-  attendancePercentage: string | number;
-};
-
-const statusClass: Record<AttendanceRecord['status'], string> = {
+const statusClass: Record<'pending' | 'present' | 'absent', string> = {
+  pending: 'bg-slate-100 text-slate-800',
   present: 'bg-green-100 text-green-800',
-  late: 'bg-yellow-100 text-yellow-800',
   absent: 'bg-red-100 text-red-800',
-  excused: 'bg-blue-100 text-blue-800',
 };
 
 export default function StudentAttendancePage() {
-  const { data: records = [], isLoading } = useSWR<AttendanceRecord[]>(
-    '/attendance/me',
-    (url: string) => apiClient.get<AttendanceRecord[]>(url)
-  );
-  const { data: stats } = useSWR<AttendanceStats>(
-    '/attendance/me/stats',
-    (url: string) => apiClient.get<AttendanceStats>(url)
-  );
+  const { data: student, isLoading: isStudentLoading } = useSWR<StudentSummary>('/students/user/profile', (url: string) => apiClient.get<StudentSummary>(url));
+  const { data: schedules = [], isLoading: isSchedulesLoading } = useSWR<AssessmentSchedule[]>('/assessments', (url: string) => apiClient.get<AssessmentSchedule[]>(url));
 
-  if (isLoading) return <LoadingSkeleton />;
+  const records = schedules
+    .map((schedule) => ({
+      schedule,
+      candidate: schedule.candidates.find((candidate) => candidate.student._id === student?._id),
+    }))
+    .filter((record) => record.candidate);
+
+  const present = records.filter((record) => record.candidate?.attendanceStatus === 'present').length;
+  const absent = records.filter((record) => record.candidate?.attendanceStatus === 'absent').length;
+  const pending = records.filter((record) => record.candidate?.attendanceStatus === 'pending').length;
+  const attendanceRate = records.length > 0 ? Math.round((present / records.length) * 100) : 0;
+
+  if (isStudentLoading || isSchedulesLoading) return <LoadingSkeleton />;
 
   return (
-    <DashboardLayout role="student">
+    <div className="p-8">
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Attendance</h1>
-          <p className="text-muted-foreground mt-1">View your attendance record and total training hours.</p>
+          <h1 className="text-3xl font-bold text-gray-900">My Assessment Attendance</h1>
+          <p className="text-muted-foreground mt-1">View your assessment schedule attendance status.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">Attendance Rate</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">Assessment Attendance Rate</CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-bold">{stats?.attendancePercentage ?? 0}%</CardContent>
+            <CardContent className="text-2xl font-bold">{attendanceRate}%</CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">Present/Late</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">Present</CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-bold text-green-600">
-              {(stats?.present ?? 0) + (stats?.late ?? 0)}
-            </CardContent>
+            <CardContent className="text-2xl font-bold text-green-600">{present}</CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">Absences</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">Absent/No-show</CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-bold text-red-600">{stats?.absent ?? 0}</CardContent>
+            <CardContent className="text-2xl font-bold text-red-600">{absent}</CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">Hours</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">Pending</CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-bold">{stats?.totalHours ?? 0}</CardContent>
+            <CardContent className="text-2xl font-bold">{pending}</CardContent>
           </Card>
         </div>
 
@@ -94,7 +79,7 @@ export default function StudentAttendancePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarCheck className="w-5 h-5" />
-              Attendance Records
+              Assessment Attendance Records
             </CardTitle>
             <CardDescription>{records.length} record(s)</CardDescription>
           </CardHeader>
@@ -102,32 +87,32 @@ export default function StudentAttendancePage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Hours</TableHead>
-                  <TableHead>Notes</TableHead>
+                  <TableHead>Schedule</TableHead>
+                  <TableHead>Date and Time</TableHead>
+                  <TableHead>Assessment Attendance</TableHead>
+                  <TableHead>Result</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {records.map((record) => (
-                  <TableRow key={record._id}>
-                    <TableCell>{new Date(record.date).toLocaleDateString()}</TableCell>
+                  <TableRow key={record.schedule._id}>
                     <TableCell>
-                      <Badge className={statusClass[record.status]}>{record.status}</Badge>
+                      <div>
+                        <p className="font-medium">{record.schedule.title}</p>
+                        <p className="text-xs text-muted-foreground">{record.schedule.course} - {record.schedule.yearLevel}</p>
+                      </div>
                     </TableCell>
+                    <TableCell>{new Date(record.schedule.scheduleDateTime).toLocaleString()}</TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        {record.hoursAttended ?? 0}
-                      </span>
+                      <Badge className={statusClass[record.candidate!.attendanceStatus]}>{record.candidate!.attendanceStatus}</Badge>
                     </TableCell>
-                    <TableCell>{record.notes || '-'}</TableCell>
+                    <TableCell>{record.candidate!.result.replaceAll('_', ' ')}</TableCell>
                   </TableRow>
                 ))}
                 {records.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
-                      No attendance records yet.
+                      No assessment attendance records yet.
                     </TableCell>
                   </TableRow>
                 )}
@@ -136,6 +121,6 @@ export default function StudentAttendancePage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { DashboardLayout } from '@/components/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,7 +50,7 @@ export default function ProfilePage() {
   if (isLoading) return <LoadingSkeleton />;
 
   return (
-    <DashboardLayout>
+    <div className="p-8">
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
 
@@ -208,6 +207,6 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

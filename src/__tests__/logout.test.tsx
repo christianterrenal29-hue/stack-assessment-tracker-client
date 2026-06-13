@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Sidebar } from '@/components/sidebar';
+import { Header } from '@/components/header';
 
 const mockLogout = vi.hoisted(() => vi.fn());
 
@@ -12,37 +12,38 @@ vi.mock('@/context/auth-context', () => ({
   }),
 }));
 
-function renderSidebar(role: 'administrator' | 'instructor' | 'assessor' | 'student') {
+function renderHeader() {
   return render(
-    <MemoryRouter initialEntries={[`/dashboard/${role === 'administrator' ? 'admin' : role}`]}>
+    <MemoryRouter initialEntries={['/dashboard/admin']}>
       <Routes>
-        <Route path="*" element={<Sidebar role={role} />} />
+        <Route path="*" element={<Header userName="Admin User" />} />
         <Route path="/auth/login" element={<div>Login page</div>} />
       </Routes>
     </MemoryRouter>
   );
 }
 
-describe('Dashboard logout', () => {
+describe('Header logout', () => {
   beforeEach(() => {
     mockLogout.mockReset();
     mockLogout.mockResolvedValue(undefined);
   });
 
-  it.each(['administrator', 'instructor', 'assessor', 'student'] as const)(
-    'renders logout in the %s sidebar',
-    (role) => {
-      renderSidebar(role);
+  it('renders logout in the header user dropdown', async () => {
+    const user = userEvent.setup();
+    renderHeader();
 
-      expect(screen.getByRole('button', { name: /logout/i })).toBeInTheDocument();
-    }
-  );
+    await user.click(screen.getByRole('button', { name: /admin user/i }));
+
+    expect(screen.getByRole('menuitem', { name: /logout/i })).toBeInTheDocument();
+  });
 
   it('calls auth logout and redirects to login', async () => {
     const user = userEvent.setup();
-    renderSidebar('administrator');
+    renderHeader();
 
-    await user.click(screen.getByRole('button', { name: /logout/i }));
+    await user.click(screen.getByRole('button', { name: /admin user/i }));
+    await user.click(screen.getByRole('menuitem', { name: /logout/i }));
 
     await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Login page')).toBeInTheDocument();

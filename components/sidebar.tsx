@@ -1,9 +1,8 @@
 'use client';
 
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { BarChart3, Users, FileText, Activity, Clock, Medal, LogOut, Settings } from 'lucide-react';
-import { useAuth } from '@/context/auth-context';
+import { BarChart3, Users, FileText, Activity, CalendarClock, Medal } from 'lucide-react';
 
 interface SidebarLink {
   href: string;
@@ -17,49 +16,36 @@ interface SidebarProps {
 
 export function Sidebar({ role }: SidebarProps) {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
-  const { logout } = useAuth();
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/auth/login', { replace: true });
-  };
 
   const getLinks = (): SidebarLink[] => {
-    const baseLinks = [
-      { href: '/dashboard', label: 'Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
-    ];
-
     const roleLinks: Record<string, SidebarLink[]> = {
       administrator: [
-        { href: '/dashboard/admin', label: 'Admin Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
+        { href: '/dashboard/admin', label: 'Administrator Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
         { href: '/admin/users', label: 'User Management', icon: <Users className="w-5 h-5" /> },
         { href: '/admin/institutions', label: 'Institutions', icon: <FileText className="w-5 h-5" /> },
         { href: '/admin/compliance', label: 'Compliance', icon: <Medal className="w-5 h-5" /> },
         { href: '/admin/audit', label: 'Audit Logs', icon: <Activity className="w-5 h-5" /> },
       ],
       instructor: [
-        { href: '/dashboard/instructor', label: 'Instructor Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
+        { href: '/dashboard/instructor', label: 'Assessment Coordinator Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
         { href: '/instructor/students', label: 'My Students', icon: <Users className="w-5 h-5" /> },
-        { href: '/instructor/assessments', label: 'Assessments', icon: <FileText className="w-5 h-5" /> },
-        { href: '/instructor/attendance', label: 'Attendance', icon: <Activity className="w-5 h-5" /> },
-        { href: '/instructor/ojt', label: 'OJT Monitoring', icon: <Clock className="w-5 h-5" /> },
+        { href: '/instructor/assessments', label: 'Assessment Scheduling', icon: <CalendarClock className="w-5 h-5" /> },
+        { href: '/instructor/attendance', label: 'Assessment Attendance', icon: <Activity className="w-5 h-5" /> },
       ],
       assessor: [
         { href: '/dashboard/assessor', label: 'Assessor Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
-        { href: '/assessor/submissions', label: 'Submissions', icon: <FileText className="w-5 h-5" /> },
-        { href: '/assessor/grading', label: 'Grading', icon: <Medal className="w-5 h-5" /> },
+        { href: '/assessor/submissions', label: 'Assigned Schedules', icon: <FileText className="w-5 h-5" /> },
+        { href: '/assessor/grading', label: 'Candidate Results', icon: <Medal className="w-5 h-5" /> },
       ],
       student: [
         { href: '/dashboard/student', label: 'My Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
-        { href: '/student/assessments', label: 'Assessments', icon: <FileText className="w-5 h-5" /> },
+        { href: '/student/assessments', label: 'Assessment Schedule', icon: <CalendarClock className="w-5 h-5" /> },
         { href: '/student/competencies', label: 'Competencies', icon: <Medal className="w-5 h-5" /> },
-        { href: '/student/attendance', label: 'Attendance', icon: <Activity className="w-5 h-5" /> },
-        { href: '/student/ojt', label: 'OJT Log', icon: <Clock className="w-5 h-5" /> },
+        { href: '/student/attendance', label: 'Assessment Attendance', icon: <Activity className="w-5 h-5" /> },
       ],
     };
 
-    return [...baseLinks, ...(roleLinks[role] || [])];
+    return roleLinks[role] || [];
   };
 
   const links = getLinks();
@@ -92,22 +78,6 @@ export function Sidebar({ role }: SidebarProps) {
         })}
       </nav>
 
-      <div className="absolute bottom-0 w-64 border-t border-border p-4 space-y-2">
-        <Link to="/settings"
-          className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-accent transition-colors"
-        >
-          <Settings className="w-5 h-5" />
-          Settings
-        </Link>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-accent transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          Logout
-        </button>
-      </div>
     </aside>
   );
 }

@@ -104,7 +104,7 @@ export default function CompetencyDetailsPage() {
   ]);
 
   const [objectives] = useState([
-    'Understand electrical hazards and risks',
+    'Understand assessment safety requirements',
     'Apply proper safety procedures',
     'Use personal protective equipment correctly',
     'Identify hazardous situations',

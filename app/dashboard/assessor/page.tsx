@@ -1,113 +1,82 @@
 'use client';
 
+import useSWR from 'swr';
+import { CalendarClock, CheckCircle2, ClipboardList, UserX } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@/context/auth-context';
+import { AssessmentSchedule, formatCandidateName } from '@/lib/assessment-types';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AssessorDashboard() {
+  const { user } = useAuth();
+  const { data: schedules = [] } = useSWR<AssessmentSchedule[]>(
+    user?._id ? `/assessments?assessor=${user._id}` : null,
+    (url: string) => apiClient.get<AssessmentSchedule[]>(url)
+  );
+
+  const candidates = schedules.flatMap((schedule) => schedule.candidates);
+
+  const metrics = [
+    ['Upcoming Schedules', schedules.filter((schedule) => schedule.status === 'scheduled').length, CalendarClock],
+    ['Candidates Scheduled', candidates.length, ClipboardList],
+    ['Completed Assessments', schedules.filter((schedule) => schedule.status === 'completed').length, ClipboardList],
+    ['Competent', candidates.filter((candidate) => candidate.result === 'competent').length, CheckCircle2],
+    ['Not Yet Competent', candidates.filter((candidate) => candidate.result === 'not_yet_competent').length, ClipboardList],
+    ['Absent/No-show', candidates.filter((candidate) => candidate.attendanceStatus === 'absent').length, UserX],
+  ] as const;
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            Assessor Dashboard
-          </h1>
-          <p className="text-muted-foreground">
-            Review and grade student assessments
-          </p>
+      <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+        <div>
+          <h1 className="text-4xl font-bold text-foreground">Assessor Dashboard</h1>
+          <p className="text-muted-foreground">View assigned TESDA assessment schedules and candidate results.</p>
         </div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Pending Submissions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground mt-1">awaiting review</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Graded Today
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground mt-1">completed</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Average Score
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">-</div>
-              <p className="text-xs text-muted-foreground mt-1">this week</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Completion Rate
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">-%</div>
-              <p className="text-xs text-muted-foreground mt-1">of assessments</p>
-            </CardContent>
-          </Card>
+        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+          {metrics.map(([label, value, Icon]) => (
+            <Card key={label}>
+              <CardContent className="pt-6">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">{label}</p>
+                  <Icon className="h-5 w-5 text-primary" />
+                </div>
+                <p className="text-3xl font-bold">{value}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        {/* Submissions Queue */}
         <Card>
           <CardHeader>
-            <CardTitle>Submissions Queue</CardTitle>
-            <CardDescription>
-              Student assessments waiting for your review
-            </CardDescription>
+            <CardTitle>Assigned Assessment Schedules</CardTitle>
+            <CardDescription>Candidate attendance and competency decisions for your schedules.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="pending" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="pending">Pending (0)</TabsTrigger>
-                <TabsTrigger value="in-progress">In Progress (0)</TabsTrigger>
-                <TabsTrigger value="completed">Completed (0)</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="pending" className="mt-4">
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    No pending submissions at this time
-                  </p>
+          <CardContent className="space-y-4">
+            {schedules.map((schedule) => (
+              <div key={schedule._id} className="rounded-lg border p-4">
+                <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p className="font-semibold">{schedule.title}</p>
+                    <p className="text-sm text-muted-foreground">{schedule.course} - {schedule.yearLevel}</p>
+                    <p className="text-sm text-muted-foreground">{schedule.qualificationTitle} {schedule.ncLevel}</p>
+                    <p className="text-sm text-muted-foreground">{new Date(schedule.scheduleDateTime).toLocaleString()} at {schedule.assessmentCenter}</p>
+                  </div>
+                  <Badge>{schedule.status}</Badge>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="in-progress" className="mt-4">
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    No submissions in progress
-                  </p>
+                <div className="grid gap-2">
+                  {schedule.candidates.map((candidate) => (
+                    <div key={candidate.student._id} className="flex flex-col gap-1 rounded-md bg-accent/60 px-3 py-2 text-sm md:flex-row md:items-center md:justify-between">
+                      <span>{formatCandidateName(candidate)}</span>
+                      <span className="text-muted-foreground">{candidate.attendanceStatus} - {candidate.result.replaceAll('_', ' ')}</span>
+                    </div>
+                  ))}
+                  {schedule.candidates.length === 0 && <p className="text-sm text-muted-foreground">No candidates assigned yet.</p>}
                 </div>
-              </TabsContent>
-
-              <TabsContent value="completed" className="mt-4">
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    No completed submissions
-                  </p>
-                </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+            ))}
+            {schedules.length === 0 && <p className="rounded-lg border p-6 text-center text-muted-foreground">No assigned schedules.</p>}
           </CardContent>
         </Card>
       </div>

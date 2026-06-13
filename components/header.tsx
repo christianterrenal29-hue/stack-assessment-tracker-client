@@ -46,7 +46,7 @@ export function Header({ userName = 'User', unreadNotifications = 0 }: HeaderPro
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="ghost" size="icon" className="rounded-full" aria-label={`${userName} menu`}>
               <Avatar className="h-8 w-8">
                 <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>

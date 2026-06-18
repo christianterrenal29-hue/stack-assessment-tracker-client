@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
 
 const MAX_CANDIDATES = 10;
 
@@ -37,8 +38,10 @@ const defaultForm = {
   ncLevel: '',
   scheduleDateTime: '',
   assessmentCenter: '',
+  labRoom: '',
   assessor: '',
   qualificationHandled: '',
+  toolsMaterialsChecklist: '',
   candidateIds: [] as string[],
 };
 
@@ -50,6 +53,8 @@ export default function AssessmentSchedulingPage() {
   const [courseFilter, setCourseFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
   const [error, setError] = useState('');
+  const [removeCandidateId, setRemoveCandidateId] = useState<string | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   const { data: schedules = [], mutate: mutateSchedules } = useSWR<AssessmentSchedule[]>(
     '/assessments',
@@ -83,7 +88,7 @@ export default function AssessmentSchedulingPage() {
       completed: filteredSchedules.filter((schedule) => schedule.status === 'completed').length,
       competent: candidates.filter((candidate) => candidate.result === 'competent').length,
       notYetCompetent: candidates.filter((candidate) => candidate.result === 'not_yet_competent').length,
-      absent: candidates.filter((candidate) => candidate.attendanceStatus === 'absent').length,
+      absent: candidates.filter((candidate) => ['absent', 'no-show'].includes(candidate.attendanceStatus)).length,
     };
   }, [filteredSchedules]);
 
@@ -93,7 +98,11 @@ export default function AssessmentSchedulingPage() {
 
   const toggleCandidate = (studentId: string) => {
     const current = new Set(formData.candidateIds);
-    current.has(studentId) ? current.delete(studentId) : current.add(studentId);
+    if (current.has(studentId)) {
+      current.delete(studentId);
+    } else {
+      current.add(studentId);
+    }
     const candidateIds = Array.from(current).slice(0, MAX_CANDIDATES);
     updateForm('candidateIds', candidateIds);
   };
@@ -136,10 +145,19 @@ export default function AssessmentSchedulingPage() {
     }
   };
 
-  const removeCandidate = async (studentId: string) => {
-    if (!selectedSchedule) return;
-    await apiClient.delete(`/assessments/${selectedSchedule._id}/candidates/${studentId}`);
-    await mutateSchedules();
+  const removeCandidate = async () => {
+    if (!selectedSchedule || !removeCandidateId) return;
+    setIsRemoving(true);
+    setError('');
+    try {
+      await apiClient.delete(`/assessments/${selectedSchedule._id}/candidates/${removeCandidateId}`);
+      setRemoveCandidateId(null);
+      await mutateSchedules();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to remove candidate');
+    } finally {
+      setIsRemoving(false);
+    }
   };
 
   const updateCandidate = async (studentId: string, updates: Record<string, string>) => {
@@ -176,7 +194,8 @@ export default function AssessmentSchedulingPage() {
                 </select>
                 <Input placeholder="Qualification title" value={formData.qualificationTitle} onChange={(e) => updateForm('qualificationTitle', e.target.value)} />
                 <Input placeholder="NC level, e.g. NC II" value={formData.ncLevel} onChange={(e) => updateForm('ncLevel', e.target.value)} />
-                <Input placeholder="Assessment center or venue" value={formData.assessmentCenter} onChange={(e) => updateForm('assessmentCenter', e.target.value)} />
+                <Input placeholder="Assessment venue" value={formData.assessmentCenter} onChange={(e) => updateForm('assessmentCenter', e.target.value)} />
+                <Input placeholder="Assessment room / lab" value={formData.labRoom} onChange={(e) => updateForm('labRoom', e.target.value)} />
                 <Input placeholder="Qualification handled" value={formData.qualificationHandled} onChange={(e) => updateForm('qualificationHandled', e.target.value)} />
                 <select className="rounded-md border bg-background px-3 py-2 text-sm" value={formData.assessor} onChange={(e) => updateForm('assessor', e.target.value)}>
                   <option value="">Assigned accredited assessor</option>
@@ -185,6 +204,11 @@ export default function AssessmentSchedulingPage() {
                   ))}
                 </select>
               </div>
+              <Textarea
+                placeholder="Tools/materials checklist before assessment"
+                value={formData.toolsMaterialsChecklist}
+                onChange={(e) => updateForm('toolsMaterialsChecklist', e.target.value)}
+              />
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">Candidates</p>
@@ -261,7 +285,9 @@ export default function AssessmentSchedulingPage() {
                       </div>
                       <p className="text-sm text-muted-foreground">{schedule.course} - {schedule.yearLevel}</p>
                       <p className="text-sm text-muted-foreground">{schedule.qualificationTitle} {schedule.ncLevel}</p>
-                      <p className="text-sm text-muted-foreground">{new Date(schedule.scheduleDateTime).toLocaleString()} at {schedule.assessmentCenter}</p>
+                      <p className="text-sm text-muted-foreground">{new Date(schedule.scheduleDateTime).toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Assessment Venue/Room: {schedule.assessmentCenter}{schedule.labRoom ? ` - ${schedule.labRoom}` : ''}</p>
+                      {schedule.toolsMaterialsChecklist && <p className="text-sm text-muted-foreground">Tools/materials: {schedule.toolsMaterialsChecklist}</p>}
                     </div>
                     <div className="text-sm text-muted-foreground md:text-right">
                       <p>{formatAssessorName(schedule.assessor, schedule.assessorName)}</p>
@@ -297,6 +323,16 @@ export default function AssessmentSchedulingPage() {
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+                  <Input
+                    placeholder="Assessment room / lab"
+                    value={selectedSchedule.labRoom ?? ''}
+                    onChange={(e) => updateSchedule(selectedSchedule, { labRoom: e.target.value })}
+                  />
+                  <Textarea
+                    placeholder="Tools/materials checklist before assessment"
+                    value={selectedSchedule.toolsMaterialsChecklist ?? ''}
+                    onChange={(e) => updateSchedule(selectedSchedule, { toolsMaterialsChecklist: e.target.value })}
+                  />
                   <div className="space-y-3">
                     {selectedSchedule.candidates.map((candidate) => (
                       <div key={candidate.student._id} className="rounded-lg border p-3">
@@ -305,13 +341,14 @@ export default function AssessmentSchedulingPage() {
                             <p className="font-medium">{formatCandidateName(candidate)}</p>
                             <p className="text-xs text-muted-foreground">{candidate.student.studentId} - {candidate.student.course ?? selectedSchedule.course} - {candidate.student.yearLevel ?? selectedSchedule.yearLevel}</p>
                           </div>
-                          <Button variant="ghost" size="sm" onClick={() => removeCandidate(candidate.student._id)}><Trash2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => setRemoveCandidateId(candidate.student._id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
                         <div className="mt-3 grid gap-2 md:grid-cols-2">
                           <select className="rounded-md border bg-background px-2 py-2 text-sm" value={candidate.attendanceStatus} onChange={(e) => updateCandidate(candidate.student._id, { attendanceStatus: e.target.value })}>
                             <option value="pending">Assessment attendance pending</option>
                             <option value="present">Present</option>
                             <option value="absent">Absent</option>
+                            <option value="no-show">No-show</option>
                           </select>
                           <select className="rounded-md border bg-background px-2 py-2 text-sm" value={candidate.result} onChange={(e) => updateCandidate(candidate.student._id, { result: e.target.value })}>
                             <option value="pending">Result pending</option>
@@ -325,7 +362,7 @@ export default function AssessmentSchedulingPage() {
                   </div>
                   <Card className="border-dashed">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-base"><ClipboardCheck className="h-4 w-4" />TESDA Checklist</CardTitle>
+                      <CardTitle className="flex items-center gap-2 text-base"><ClipboardCheck className="h-4 w-4" />Assessment Requirements Checklist</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {[
@@ -362,6 +399,15 @@ export default function AssessmentSchedulingPage() {
             </CardContent>
           </Card>
         </div>
+        <ConfirmDeleteDialog
+          open={Boolean(removeCandidateId)}
+          onOpenChange={(open) => !open && setRemoveCandidateId(null)}
+          onConfirm={removeCandidate}
+          isDeleting={isRemoving}
+          title="Remove candidate?"
+          description="This will remove the selected candidate from the current assessment schedule."
+          confirmLabel="Remove"
+        />
       </div>
     </div>
   );

@@ -10,10 +10,9 @@ export default function PrivacyPage() {
           <CardHeader>
             <CardTitle>Privacy Policy</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm text-muted-foreground">
+          <CardContent className="space-y-5 text-sm leading-7 text-muted-foreground">
             <p>
-              TESDA Assessment Tracker stores account, candidate, assessment schedule, attendance,
-              competency result, document, and audit information needed to operate TESDA assessment workflows.
+              TESDA Assessment Tracker / Assessment Tracker for Student Records and Monitoring System stores account, candidate, assessment schedule, attendance, competency result, document, notification, report, and audit information needed to operate TESDA assessment workflows at Top Link Global College Inc.
             </p>
             <p>
               Access is limited by role. Administrators manage institutional records, assessment
@@ -21,8 +20,13 @@ export default function PrivacyPage() {
               and students view their own candidate records.
             </p>
             <p>
-              Uploaded documents and audit records should be handled according to institutional
-              retention policies and applicable data-protection requirements.
+              Uploaded documents may include identification files, application forms, self-assessment guides, attendance sheets, rating sheets, certificates, and related evidence. These records are used only for legitimate academic, assessment, monitoring, reporting, and compliance purposes.
+            </p>
+            <p>
+              The system applies authenticated access, role-based permissions, protected API routes, and audit logging where supported by the module. Users should not share credentials or download, disclose, alter, or delete records except for authorized institutional work.
+            </p>
+            <p>
+              Records should be retained, archived, corrected, or removed according to school policy, TESDA documentation requirements, and applicable Philippine data privacy obligations.
             </p>
             <Button asChild variant="outline">
               <Link to="/auth/login">Back to login</Link>

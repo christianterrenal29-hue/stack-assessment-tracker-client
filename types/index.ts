@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'educator' | 'student';
+export type UserRole = 'administrator' | 'instructor' | 'assessor' | 'student';
 
 export interface User {
   id: string;
@@ -62,7 +62,8 @@ export interface Assessment {
   description: string;
   type: 'formative' | 'summative' | 'diagnostic';
   subject: string;
-  gradeLevel: string;
+  course: 'IT' | 'HRMT' | 'ECT' | 'HST';
+  yearLevel: '1st Year' | '2nd Year' | '3rd Year';
   createdBy: string;
   institution: string;
   department?: string;

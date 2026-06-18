@@ -6,11 +6,14 @@ import { apiClient } from '@/lib/api-client';
 import { useAuth } from '@/context/auth-context';
 import { AssessmentSchedule, formatCandidateName } from '@/lib/assessment-types';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { DashboardPage } from '@/components/dashboard-page';
 
 export default function AssessorDashboard() {
   const { user } = useAuth();
-  const { data: schedules = [] } = useSWR<AssessmentSchedule[]>(
+  const { data: schedules = [], isLoading, error } = useSWR<AssessmentSchedule[]>(
     user?._id ? `/assessments?assessor=${user._id}` : null,
     (url: string) => apiClient.get<AssessmentSchedule[]>(url)
   );
@@ -23,39 +26,43 @@ export default function AssessorDashboard() {
     ['Completed Assessments', schedules.filter((schedule) => schedule.status === 'completed').length, ClipboardList],
     ['Competent', candidates.filter((candidate) => candidate.result === 'competent').length, CheckCircle2],
     ['Not Yet Competent', candidates.filter((candidate) => candidate.result === 'not_yet_competent').length, ClipboardList],
-    ['Absent/No-show', candidates.filter((candidate) => candidate.attendanceStatus === 'absent').length, UserX],
+    ['Absent/No-show', candidates.filter((candidate) => ['absent', 'no-show'].includes(candidate.attendanceStatus)).length, UserX],
   ] as const;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+    <DashboardPage>
         <div>
-          <h1 className="text-4xl font-bold text-foreground">Assessor Dashboard</h1>
-          <p className="text-muted-foreground">View assigned TESDA assessment schedules and candidate results.</p>
+          <h1 className="text-2xl font-semibold tracking-normal text-[#0b2f57] sm:text-3xl">Assessor Dashboard</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">View assigned TESDA assessment schedules and candidate results.</p>
         </div>
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error.message || 'Failed to load assigned schedules'}</AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
           {metrics.map(([label, value, Icon]) => (
-            <Card key={label}>
+            <Card key={label} className="border-white/75 bg-white/85 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <CardContent className="pt-6">
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">{label}</p>
                   <Icon className="h-5 w-5 text-primary" />
                 </div>
-                <p className="text-3xl font-bold">{value}</p>
+                {isLoading ? <Skeleton className="h-9 w-16" /> : <p className="text-3xl font-bold">{value}</p>}
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <Card>
+        <Card className="border-white/75 bg-white/85 shadow-sm">
           <CardHeader>
-            <CardTitle>Assigned Assessment Schedules</CardTitle>
+            <CardTitle className="text-xl text-[#0b2f57]">Assigned Assessment Schedules</CardTitle>
             <CardDescription>Candidate attendance and competency decisions for your schedules.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {schedules.map((schedule) => (
-              <div key={schedule._id} className="rounded-lg border p-4">
+              <div key={schedule._id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
                 <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                   <div>
                     <p className="font-semibold">{schedule.title}</p>
@@ -76,10 +83,9 @@ export default function AssessorDashboard() {
                 </div>
               </div>
             ))}
-            {schedules.length === 0 && <p className="rounded-lg border p-6 text-center text-muted-foreground">No assigned schedules.</p>}
+            {schedules.length === 0 && <p className="rounded-2xl border border-dashed bg-slate-50/60 p-6 text-center text-muted-foreground">No assigned schedules.</p>}
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </DashboardPage>
   );
 }

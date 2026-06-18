@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiClient } from '@/lib/api-client';
 import { AssessmentSchedule, StudentSummary } from '@/lib/assessment-types';
+import { getStudentProfile } from '@/lib/student-profile';
 
 export default function StudentAssessmentsPage() {
-  const { data: student } = useSWR<StudentSummary>('/students/user/profile', (url: string) => apiClient.get<StudentSummary>(url));
+  const { data: student } = useSWR<StudentSummary | null>('/students/user/profile', getStudentProfile);
   const { data: schedules = [] } = useSWR<AssessmentSchedule[]>('/assessments', (url: string) => apiClient.get<AssessmentSchedule[]>(url));
 
   const mySchedules = schedules

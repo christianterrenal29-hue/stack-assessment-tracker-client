@@ -112,9 +112,9 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-accent/10 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(135deg,#f8fafc_0%,#eef6f1_48%,#edf4fb_100%)] p-4">
         <div className="w-full max-w-md">
-          <Card className="border-green-200 bg-green-50">
+          <Card className="border-green-200 bg-green-50/90 shadow-xl shadow-slate-900/5">
             <CardHeader className="text-center">
               <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto mb-4" />
               <CardTitle>Registration Successful!</CardTitle>
@@ -129,16 +129,20 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-accent/10 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(135deg,#f8fafc_0%,#eef6f1_48%,#edf4fb_100%)] p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Create Account</h1>
-          <p className="text-muted-foreground mt-2">Join the TESDA Assessment System</p>
+          <div className="mb-5 flex items-center justify-center gap-5">
+            <img src="/tesda-logo.png" alt="TESDA logo" className="h-14 w-14 rounded-2xl bg-white object-contain p-2 shadow-sm" />
+            <img src="/toplink-logo.png" alt="Top Link Global College logo" className="h-14 w-14 rounded-2xl bg-white object-contain p-2 shadow-sm" />
+          </div>
+          <h1 className="text-2xl font-semibold text-[#0b2f57] sm:text-3xl">Create Account</h1>
+          <p className="text-muted-foreground mt-2">Join the TESDA Assessment Tracker System</p>
         </div>
 
         {/* Registration Card */}
-        <Card>
+        <Card className="border-white/80 bg-white/90 shadow-xl shadow-slate-900/5">
           <CardHeader>
             <CardTitle>Sign Up</CardTitle>
             <CardDescription>
@@ -154,7 +158,7 @@ export default function RegisterPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label htmlFor="firstName" className="text-sm font-medium">
                     First Name

@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
  */
 export function DashboardSkeleton() {
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8 p-6">
       {/* Header Skeleton */}
       <div className="space-y-2">
         <Skeleton className="h-10 w-48" />
@@ -69,7 +69,7 @@ export function TableSkeleton({ rows = 10 }: { rows?: number }) {
  */
 export function CardSkeleton() {
   return (
-    <div className="p-6 border rounded-lg space-y-4">
+    <div className="space-y-4 rounded-2xl border border-white/75 bg-white/75 p-6 shadow-sm">
       {/* Header */}
       <div className="space-y-2">
         <Skeleton className="h-6 w-40" />
@@ -93,7 +93,7 @@ export function ListItemSkeleton({ count = 5 }: { count?: number }) {
   return (
     <div className="space-y-3">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="p-4 border rounded-lg flex justify-between items-center">
+        <div key={i} className="flex items-center justify-between rounded-2xl border border-white/75 bg-white/75 p-4 shadow-sm">
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-40" />
             <Skeleton className="h-3 w-32" />
@@ -127,7 +127,7 @@ export function FormSkeleton({ fields = 4 }: { fields?: number }) {
  */
 export function ProgressCardSkeleton() {
   return (
-    <div className="p-6 border rounded-lg space-y-4">
+    <div className="space-y-4 rounded-2xl border border-white/75 bg-white/75 p-6 shadow-sm">
       <div className="space-y-2">
         <Skeleton className="h-6 w-40" />
         <Skeleton className="h-4 w-60" />
@@ -159,7 +159,7 @@ export function TabsContentSkeleton() {
       {/* Tab content */}
       <div className="space-y-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="p-4 border rounded-lg space-y-2">
+          <div key={i} className="space-y-2 rounded-2xl border border-white/75 bg-white/75 p-4 shadow-sm">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-48" />
@@ -177,7 +177,7 @@ export function GridSkeleton({ columns = 3, items = 6 }: { columns?: number; ite
   return (
     <div className={`grid grid-cols-${columns} gap-4`}>
       {Array.from({ length: items }).map((_, i) => (
-        <div key={i} className="p-4 border rounded-lg space-y-3">
+        <div key={i} className="space-y-3 rounded-2xl border border-white/75 bg-white/75 p-4 shadow-sm">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-24" />

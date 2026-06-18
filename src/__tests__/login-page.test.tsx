@@ -24,7 +24,7 @@ describe('LoginPage', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole('heading', { name: /tesda tracker/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /tesda assessment tracker system/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /register here/i })).toHaveAttribute('href', '/auth/register');

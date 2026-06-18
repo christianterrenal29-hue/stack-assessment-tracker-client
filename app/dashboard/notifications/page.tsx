@@ -1,9 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import useSWR from 'swr';
+import { apiClient } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
 import {
   Tabs,
   TabsContent,
@@ -21,121 +25,100 @@ import {
 } from 'lucide-react';
 
 interface Notification {
-  id: string;
-  type: 'alert' | 'info' | 'success' | 'warning';
+  _id: string;
+  type: 'risk_alert' | 'intervention' | 'achievement' | 'general' | 'upcoming_assessment' | 'missing_requirements' | 'result_posted' | 'schedule_updated';
   title: string;
   message: string;
-  timestamp: string;
+  createdAt: string;
   read: boolean;
-  icon: React.ReactNode;
+  actionUrl?: string;
 }
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'alert',
-      title: 'Critical Student Alert',
-      message: 'Ana Reyes has not submitted any assignments in 7 days',
-      timestamp: '2024-05-24T10:30:00',
-      read: false,
-      icon: <AlertCircle className="w-4 h-4" />,
-    },
-    {
-      id: '2',
-      type: 'success',
-      title: 'Assessment Completed',
-      message: 'Maria Garcia completed Module 1 Assessment with 85%',
-      timestamp: '2024-05-24T09:15:00',
-      read: false,
-      icon: <CheckCircle2 className="w-4 h-4" />,
-    },
-    {
-      id: '3',
-      type: 'warning',
-      title: 'Low Attendance Alert',
-      message: 'Carlos Santos has 78% attendance rate',
-      timestamp: '2024-05-23T14:45:00',
-      read: true,
-      icon: <AlertCircle className="w-4 h-4" />,
-    },
-    {
-      id: '4',
-      type: 'info',
-      title: 'New Submission',
-      message: 'Juan Cruz submitted Module 2 Mid-Term Assessment',
-      timestamp: '2024-05-23T11:20:00',
-      read: true,
-      icon: <FileText className="w-4 h-4" />,
-    },
-    {
-      id: '5',
-      type: 'success',
-      title: 'Competency Achieved',
-      message: 'Maria Garcia achieved Competency: Electrical Circuits',
-      timestamp: '2024-05-22T16:30:00',
-      read: true,
-      icon: <TrendingUp className="w-4 h-4" />,
-    },
-    {
-      id: '6',
-      type: 'info',
-      title: 'Student Enrolled',
-      message: '3 new students have enrolled in Electrical Installation program',
-      timestamp: '2024-05-22T10:00:00',
-      read: true,
-      icon: <Users className="w-4 h-4" />,
-    },
-    {
-      id: '7',
-      type: 'warning',
-      title: 'Assessment Due Soon',
-      message: 'Module 3 Assessment is due in 2 days',
-      timestamp: '2024-05-21T09:00:00',
-      read: true,
-      icon: <Bell className="w-4 h-4" />,
-    },
-  ]);
+  const [error, setError] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { data: notifications = [], mutate, isLoading, error: loadError } = useSWR<Notification[]>(
+    '/notifications',
+    (url: string) => apiClient.get<Notification[]>(url)
+  );
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const getNotificationColor = (type: string) => {
     const colors: Record<string, string> = {
-      alert: 'border-red-200 bg-red-50 text-red-900',
-      warning: 'border-yellow-200 bg-yellow-50 text-yellow-900',
-      success: 'border-green-200 bg-green-50 text-green-900',
-      info: 'border-blue-200 bg-blue-50 text-blue-900',
+      risk_alert: 'border-red-200 bg-red-50 text-red-900',
+      missing_requirements: 'border-yellow-200 bg-yellow-50 text-yellow-900',
+      result_posted: 'border-green-200 bg-green-50 text-green-900',
+      upcoming_assessment: 'border-blue-200 bg-blue-50 text-blue-900',
+      schedule_updated: 'border-cyan-200 bg-cyan-50 text-cyan-900',
+      intervention: 'border-orange-200 bg-orange-50 text-orange-900',
+      achievement: 'border-green-200 bg-green-50 text-green-900',
+      general: 'border-slate-200 bg-slate-50 text-slate-900',
     };
     return colors[type] || 'border-gray-200 bg-gray-50 text-gray-900';
   };
 
   const getNotificationBadgeColor = (type: string) => {
     const colors: Record<string, string> = {
-      alert: 'bg-red-100 text-red-800',
-      warning: 'bg-yellow-100 text-yellow-800',
-      success: 'bg-green-100 text-green-800',
-      info: 'bg-blue-100 text-blue-800',
+      risk_alert: 'bg-red-100 text-red-800',
+      missing_requirements: 'bg-yellow-100 text-yellow-800',
+      result_posted: 'bg-green-100 text-green-800',
+      upcoming_assessment: 'bg-blue-100 text-blue-800',
+      schedule_updated: 'bg-cyan-100 text-cyan-800',
+      intervention: 'bg-orange-100 text-orange-800',
+      achievement: 'bg-green-100 text-green-800',
+      general: 'bg-slate-100 text-slate-800',
     };
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  const getNotificationIcon = (type: Notification['type']) => {
+    if (type === 'result_posted' || type === 'achievement') return <TrendingUp className="w-4 h-4" />;
+    if (type === 'missing_requirements') return <FileText className="w-4 h-4" />;
+    if (type === 'schedule_updated') return <Users className="w-4 h-4" />;
+    if (type === 'upcoming_assessment') return <Bell className="w-4 h-4" />;
+    return <AlertCircle className="w-4 h-4" />;
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await apiClient.put(`/notifications/${id}/read`, {});
+      await mutate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to mark notification as read');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  const handleMarkAllAsRead = async () => {
+    try {
+      await apiClient.put('/notifications/read/all', {});
+      await mutate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to mark notifications as read');
+    }
   };
 
-  const handleDeleteAll = () => {
-    setNotifications([]);
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      await apiClient.delete(`/notifications/${deleteId}`);
+      setDeleteId(null);
+      await mutate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete notification');
+    } finally {
+      setIsDeleting(false);
+    }
   };
+
+  const grouped = useMemo(() => ({
+    alerts: notifications.filter((n) => n.type === 'risk_alert'),
+    success: notifications.filter((n) => n.type === 'result_posted' || n.type === 'achievement'),
+    warnings: notifications.filter((n) => n.type === 'missing_requirements'),
+    unread: notifications.filter((n) => !n.read),
+  }), [notifications]);
 
   const NotificationItem = ({ notification }: { notification: Notification }) => (
     <div
@@ -145,15 +128,13 @@ export default function NotificationsPage() {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 flex-1">
-          {notification.icon && (
-            <div className="mt-1">{notification.icon}</div>
-          )}
+          <div className="mt-1">{getNotificationIcon(notification.type)}</div>
           <div className="flex-1">
             <h4 className="font-semibold">{notification.title}</h4>
             <p className="text-sm mt-1">{notification.message}</p>
             <div className="flex items-center gap-2 mt-3">
               <time className="text-xs">
-                {new Date(notification.timestamp).toLocaleString()}
+                {new Date(notification.createdAt).toLocaleString()}
               </time>
               {!notification.read && (
                 <Badge
@@ -170,7 +151,7 @@ export default function NotificationsPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleMarkAsRead(notification.id)}
+              onClick={() => handleMarkAsRead(notification._id)}
               className="text-xs"
             >
               Mark Read
@@ -179,7 +160,7 @@ export default function NotificationsPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleDelete(notification.id)}
+            onClick={() => setDeleteId(notification._id)}
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -189,16 +170,16 @@ export default function NotificationsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl space-y-6">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">
               Notifications
             </h1>
             <p className="text-muted-foreground mt-1">
-              Stay updated with system events
+              Upcoming assessments, missing requirements, posted results, and schedule updates
             </p>
           </div>
           {unreadCount > 0 && (
@@ -208,9 +189,14 @@ export default function NotificationsPage() {
             </Badge>
           )}
         </div>
+        {(error || loadError) && (
+          <Alert variant="destructive">
+            <AlertDescription>{error || loadError.message || 'Failed to load notifications'}</AlertDescription>
+          </Alert>
+        )}
 
         {/* Action Buttons */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2">
           {unreadCount > 0 && (
             <Button
               variant="outline"
@@ -221,19 +207,16 @@ export default function NotificationsPage() {
               Mark All as Read
             </Button>
           )}
-          {notifications.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={handleDeleteAll}
-              className="gap-2 text-destructive"
-            >
-              <Trash2 className="w-4 h-4" />
-              Clear All
-            </Button>
-          )}
         </div>
 
-        {notifications.length === 0 ? (
+        {isLoading ? (
+          <Card>
+            <CardHeader className="text-center py-12">
+              <CardTitle>Loading Notifications</CardTitle>
+              <CardDescription>Fetching TESDA assessment notifications.</CardDescription>
+            </CardHeader>
+          </Card>
+        ) : notifications.length === 0 ? (
           <Card>
             <CardHeader className="text-center py-12">
               <Bell className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -259,7 +242,7 @@ export default function NotificationsPage() {
               <div className="space-y-3">
                 {notifications.map((notification) => (
                   <NotificationItem
-                    key={notification.id}
+                    key={notification._id}
                     notification={notification}
                   />
                 ))}
@@ -268,57 +251,61 @@ export default function NotificationsPage() {
 
             <TabsContent value="alerts" className="mt-6">
               <div className="space-y-3">
-                {notifications
-                  .filter((n) => n.type === 'alert')
-                  .map((notification) => (
+                {grouped.alerts.map((notification) => (
                     <NotificationItem
-                      key={notification.id}
+                      key={notification._id}
                       notification={notification}
                     />
                   ))}
+                {grouped.alerts.length === 0 && <Card><CardHeader className="text-center py-10"><CardTitle>No Alerts</CardTitle><CardDescription>No risk alerts at this time.</CardDescription></CardHeader></Card>}
               </div>
             </TabsContent>
 
             <TabsContent value="success" className="mt-6">
               <div className="space-y-3">
-                {notifications
-                  .filter((n) => n.type === 'success')
-                  .map((notification) => (
+                {grouped.success.map((notification) => (
                     <NotificationItem
-                      key={notification.id}
+                      key={notification._id}
                       notification={notification}
                     />
                   ))}
+                {grouped.success.length === 0 && <Card><CardHeader className="text-center py-10"><CardTitle>No Success Notifications</CardTitle><CardDescription>No posted results or achievements yet.</CardDescription></CardHeader></Card>}
               </div>
             </TabsContent>
 
             <TabsContent value="warnings" className="mt-6">
               <div className="space-y-3">
-                {notifications
-                  .filter((n) => n.type === 'warning')
-                  .map((notification) => (
+                {grouped.warnings.map((notification) => (
                     <NotificationItem
-                      key={notification.id}
+                      key={notification._id}
                       notification={notification}
                     />
                   ))}
+                {grouped.warnings.length === 0 && <Card><CardHeader className="text-center py-10"><CardTitle>No Warnings</CardTitle><CardDescription>No missing-requirement notices at this time.</CardDescription></CardHeader></Card>}
               </div>
             </TabsContent>
 
             <TabsContent value="unread" className="mt-6">
               <div className="space-y-3">
-                {notifications
-                  .filter((n) => !n.read)
-                  .map((notification) => (
+                {grouped.unread.map((notification) => (
                     <NotificationItem
-                      key={notification.id}
+                      key={notification._id}
                       notification={notification}
                     />
                   ))}
+                {grouped.unread.length === 0 && <Card><CardHeader className="text-center py-10"><CardTitle>No Unread Notifications</CardTitle><CardDescription>Everything has been reviewed.</CardDescription></CardHeader></Card>}
               </div>
             </TabsContent>
           </Tabs>
         )}
+        <ConfirmDeleteDialog
+          open={Boolean(deleteId)}
+          onOpenChange={(open) => !open && setDeleteId(null)}
+          onConfirm={handleDelete}
+          isDeleting={isDeleting}
+          title="Delete notification?"
+          description="This will remove the selected notification from your list."
+        />
       </div>
     </div>
   );

@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/data-table';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Plus } from 'lucide-react';
+import { DashboardPage } from '@/components/dashboard-page';
 
 interface User {
   id: string;
@@ -45,6 +47,7 @@ export default function UserManagementPage() {
   ]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', role: 'instructor' });
+  const [formError, setFormError] = useState('');
 
   const getRoleColor = (role: string) => {
     const colors: Record<string, string> = {
@@ -100,8 +103,9 @@ export default function UserManagementPage() {
   ];
 
   const handleAddUser = async () => {
+    setFormError('');
     if (!formData.firstName || !formData.lastName || !formData.email) {
-      alert('Please fill all fields');
+      setFormError('Please fill in the first name, last name, and email fields.');
       return;
     }
 
@@ -122,18 +126,17 @@ export default function UserManagementPage() {
       setFormData({ firstName: '', lastName: '', email: '', role: 'instructor' });
       setDialogOpen(false);
     } catch {
-      alert('Failed to add user');
+      setFormError('Failed to add user');
     }
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto">
+    <DashboardPage>
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+        <div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">User Management</h1>
+              <h1 className="text-2xl font-semibold text-[#0b2f57] sm:text-3xl">User Management</h1>
               <p className="text-muted-foreground mt-1">
                 Manage system users and their roles
               </p>
@@ -153,6 +156,11 @@ export default function UserManagementPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
+                  {formError && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{formError}</AlertDescription>
+                    </Alert>
+                  )}
                   <div>
                     <label className="text-sm font-medium">First Name</label>
                     <Input
@@ -194,8 +202,8 @@ export default function UserManagementPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <Card className="border-white/75 bg-white/85 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Total Users
@@ -205,7 +213,7 @@ export default function UserManagementPage() {
               <div className="text-2xl font-bold">{users.length}</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-white/75 bg-white/85 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Instructors
@@ -217,7 +225,7 @@ export default function UserManagementPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-white/75 bg-white/85 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Assessors
@@ -229,7 +237,7 @@ export default function UserManagementPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-white/75 bg-white/85 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Active Users
@@ -244,7 +252,7 @@ export default function UserManagementPage() {
         </div>
 
         {/* Data Table */}
-        <Card>
+        <Card className="border-white/75 bg-white/85 shadow-sm">
           <CardHeader>
             <CardTitle>Users</CardTitle>
             <CardDescription>
@@ -262,7 +270,6 @@ export default function UserManagementPage() {
             />
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </DashboardPage>
   );
 }

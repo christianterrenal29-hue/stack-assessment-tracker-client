@@ -33,16 +33,12 @@ export function DashboardLayout({
   const resolvedUserName = user ? `${user.firstName} ${user.lastName}` : userName;
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
+    <div className="flex h-screen flex-col bg-background md:flex-row">
       <Sidebar role={resolvedRole} />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <Header userName={resolvedUserName} unreadNotifications={unreadNotifications} />
 
-        {/* Page Content */}
         <main className="flex-1 overflow-auto">
           {children}
         </main>

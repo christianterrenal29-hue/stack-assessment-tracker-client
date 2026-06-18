@@ -11,9 +11,9 @@ describe('AdminDashboard', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole('heading', { name: /administrator dashboard/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /assessment operations dashboard/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /manage assessment schedules/i })).toHaveAttribute('href', '/instructor/assessments');
-    expect(screen.getByRole('link', { name: /manage users and roles/i })).toHaveAttribute('href', '/admin/users');
+    expect(screen.getByRole('link', { name: /review candidate results/i })).toHaveAttribute('href', '/candidate-results');
     expect(screen.getByRole('link', { name: /generate tesda reports/i })).toHaveAttribute('href', '/reports');
   });
 });

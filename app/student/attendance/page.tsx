@@ -3,7 +3,8 @@
 import useSWR from 'swr';
 import { CalendarCheck } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-import { AssessmentSchedule, StudentSummary } from '@/lib/assessment-types';
+import { AssessmentSchedule, CandidateAttendanceStatus, StudentSummary } from '@/lib/assessment-types';
+import { getStudentProfile } from '@/lib/student-profile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSkeleton } from '@/components/loading-skeleton';
@@ -16,14 +17,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-const statusClass: Record<'pending' | 'present' | 'absent', string> = {
+const statusClass: Record<CandidateAttendanceStatus, string> = {
   pending: 'bg-slate-100 text-slate-800',
   present: 'bg-green-100 text-green-800',
   absent: 'bg-red-100 text-red-800',
+  'no-show': 'bg-orange-100 text-orange-800',
 };
 
 export default function StudentAttendancePage() {
-  const { data: student, isLoading: isStudentLoading } = useSWR<StudentSummary>('/students/user/profile', (url: string) => apiClient.get<StudentSummary>(url));
+  const { data: student, isLoading: isStudentLoading } = useSWR<StudentSummary | null>('/students/user/profile', getStudentProfile);
   const { data: schedules = [], isLoading: isSchedulesLoading } = useSWR<AssessmentSchedule[]>('/assessments', (url: string) => apiClient.get<AssessmentSchedule[]>(url));
 
   const records = schedules
@@ -34,7 +36,7 @@ export default function StudentAttendancePage() {
     .filter((record) => record.candidate);
 
   const present = records.filter((record) => record.candidate?.attendanceStatus === 'present').length;
-  const absent = records.filter((record) => record.candidate?.attendanceStatus === 'absent').length;
+  const absent = records.filter((record) => record.candidate && ['absent', 'no-show'].includes(record.candidate.attendanceStatus)).length;
   const pending = records.filter((record) => record.candidate?.attendanceStatus === 'pending').length;
   const attendanceRate = records.length > 0 ? Math.round((present / records.length) * 100) : 0;
 

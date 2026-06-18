@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { DashboardPage } from '@/components/dashboard-page';
 import {
   Table,
   TableBody,
@@ -63,11 +64,10 @@ export default function AuditLogsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <DashboardPage>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Audit Logs</h1>
+            <h1 className="text-2xl font-semibold text-[#0b2f57] sm:text-3xl">Audit Logs</h1>
             <p className="mt-1 text-muted-foreground">
               Review administrative and system actions across TESDA tracker modules.
             </p>
@@ -84,7 +84,7 @@ export default function AuditLogsPage() {
           </Alert>
         )}
 
-        <Card>
+        <Card className="border-white/75 bg-white/85 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ScrollText className="h-5 w-5" />
@@ -138,7 +138,6 @@ export default function AuditLogsPage() {
             </Table>
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </DashboardPage>
   );
 }

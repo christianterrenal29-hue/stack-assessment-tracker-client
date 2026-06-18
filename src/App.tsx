@@ -7,9 +7,12 @@ import { ProtectedRoute } from '@/components/protected-route';
 import { DashboardLayout } from '@/components/dashboard-layout';
 
 const LoginPage = lazy(() => import('@/app/auth/login/page'));
+const LandingPage = lazy(() => import('@/app/page'));
 const RegisterPage = lazy(() => import('@/app/auth/register/page'));
 const PrivacyPage = lazy(() => import('@/app/privacy/page'));
 const TermsPage = lazy(() => import('@/app/terms/page'));
+const HelpPage = lazy(() => import('@/app/help/page'));
+const AboutSystemPage = lazy(() => import('@/app/about/page'));
 const AdminDashboard = lazy(() => import('@/app/dashboard/admin/page'));
 const InstructorDashboard = lazy(() => import('@/app/dashboard/instructor/page'));
 const AssessorDashboard = lazy(() => import('@/app/dashboard/assessor/page'));
@@ -21,8 +24,7 @@ const CompetenciesPage = lazy(() => import('@/app/admin/competencies/page'));
 const InstructorStudentsPage = lazy(() => import('@/app/instructor/students/page'));
 const InstructorAssessmentsPage = lazy(() => import('@/app/instructor/assessments/page'));
 const AttendancePage = lazy(() => import('@/app/instructor/attendance/page'));
-const SubmissionsPage = lazy(() => import('@/app/assessor/submissions/page'));
-const GradingPage = lazy(() => import('@/app/assessor/submissions/[id]/grade/page'));
+const CandidateResultsPage = lazy(() => import('@/app/candidate-results/page'));
 const StudentAssessmentsPage = lazy(() => import('@/app/student/assessments/page'));
 const StudentCompetenciesListPage = lazy(() => import('@/app/student/competencies/page'));
 const StudentAttendancePage = lazy(() => import('@/app/student/attendance/page'));
@@ -46,6 +48,7 @@ const adminRoles = ['administrator'] as const;
 const instructorRoles = ['administrator', 'instructor'] as const;
 const assessorRoles = ['administrator', 'assessor'] as const;
 const documentRoles = ['administrator', 'instructor', 'assessor'] as const;
+const fileRoles = ['administrator', 'instructor', 'assessor', 'student'] as const;
 const studentRoles = ['student'] as const;
 
 function protectedElement(element: ReactNode, roles?: AppRole[]) {
@@ -87,11 +90,13 @@ export default function App() {
     <Providers>
       <Suspense fallback={<PageFallback />}>
         <Routes>
-          <Route path="/" element={<RootRedirect />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/auth/login" element={<LoginPage />} />
           <Route path="/auth/register" element={<RegisterPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/help" element={protectedElement(dashboardElement(<HelpPage />))} />
+          <Route path="/about" element={protectedElement(dashboardElement(<AboutSystemPage />))} />
           <Route path="/login" element={<Navigate to="/auth/login" replace />} />
           <Route path="/register" element={<Navigate to="/auth/register" replace />} />
           <Route path="/dashboard" element={<RootRedirect />} />
@@ -121,14 +126,16 @@ export default function App() {
           <Route path="/dashboard/instructor/assessments" element={protectedDashboardElement(<InstructorAssessmentsPage />, [...instructorRoles], 'instructor')} />
           <Route path="/assessments" element={protectedDashboardElement(<InstructorAssessmentsPage />, [...instructorRoles], 'instructor')} />
           <Route path="/instructor/attendance" element={protectedDashboardElement(<AttendancePage />, [...instructorRoles], 'instructor')} />
+          <Route path="/instructor/assessment-attendance" element={<Navigate to="/instructor/attendance" replace />} />
           <Route path="/dashboard/instructor/attendance" element={protectedDashboardElement(<AttendancePage />, [...instructorRoles], 'instructor')} />
           <Route path="/attendance" element={protectedDashboardElement(<AttendancePage />, [...instructorRoles], 'instructor')} />
-          <Route path="/assessor/submissions" element={protectedDashboardElement(<SubmissionsPage />, [...assessorRoles], 'assessor')} />
-          <Route path="/assessor/grading" element={protectedDashboardElement(<SubmissionsPage />, [...assessorRoles], 'assessor')} />
-          <Route path="/submissions" element={protectedDashboardElement(<SubmissionsPage />, [...assessorRoles], 'assessor')} />
-          <Route path="/assessor/submissions/:id/grade" element={protectedDashboardElement(<GradingPage />, [...assessorRoles], 'assessor')} />
-          <Route path="/grading/:id" element={protectedDashboardElement(<GradingPage />, [...assessorRoles], 'assessor')} />
-          <Route path="/grading" element={protectedDashboardElement(<SubmissionsPage />, [...assessorRoles], 'assessor')} />
+          <Route path="/assessor/submissions" element={<Navigate to="/candidate-results" replace />} />
+          <Route path="/candidate-results" element={protectedDashboardElement(<CandidateResultsPage />, [...documentRoles])} />
+          <Route path="/assessor/grading" element={<Navigate to="/candidate-results" replace />} />
+          <Route path="/submissions" element={<Navigate to="/candidate-results" replace />} />
+          <Route path="/assessor/submissions/:id/grade" element={<Navigate to="/candidate-results" replace />} />
+          <Route path="/grading/:id" element={<Navigate to="/candidate-results" replace />} />
+          <Route path="/grading" element={<Navigate to="/candidate-results" replace />} />
           <Route path="/student/dashboard" element={<Navigate to="/dashboard/student" replace />} />
           <Route path="/student/assessments" element={protectedDashboardElement(<StudentAssessmentsPage />, [...studentRoles], 'student')} />
           <Route path="/student/assessments/:id" element={<Navigate to="/student/assessments" replace />} />
@@ -140,7 +147,7 @@ export default function App() {
           <Route path="/dashboard/admin/reports" element={protectedDashboardElement(<AdminReportsPage />, [...adminRoles], 'administrator')} />
           <Route path="/dashboard/admin/compliance" element={protectedDashboardElement(<CompliancePage />, [...adminRoles], 'administrator')} />
           <Route path="/dashboard/admin/analytics" element={protectedDashboardElement(<AnalyticsPage />, [...adminRoles], 'administrator')} />
-          <Route path="/documents" element={protectedDashboardElement(<DocumentsPage />, [...documentRoles])} />
+          <Route path="/documents" element={protectedDashboardElement(<DocumentsPage />, [...fileRoles])} />
           <Route path="/dashboard/admin/documents" element={protectedDashboardElement(<AdminDocumentsPage />, [...adminRoles], 'administrator')} />
           <Route path="/audit-logs" element={protectedDashboardElement(<AuditLogsPage />, [...adminRoles], 'administrator')} />
           <Route path="/dashboard/admin/audit-logs" element={protectedDashboardElement(<AdminAuditLogsPage />, [...adminRoles], 'administrator')} />

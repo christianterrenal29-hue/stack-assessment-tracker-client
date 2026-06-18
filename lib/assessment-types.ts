@@ -1,7 +1,7 @@
 import type { CourseOption, YearLevelOption } from './school-options';
 
 export type AssessmentScheduleStatus = 'scheduled' | 'ongoing' | 'completed' | 'cancelled';
-export type CandidateAttendanceStatus = 'pending' | 'present' | 'absent';
+export type CandidateAttendanceStatus = 'pending' | 'present' | 'absent' | 'no-show';
 export type CandidateAssessmentResult = 'pending' | 'competent' | 'not_yet_competent';
 export type ChecklistStatus = 'pending' | 'submitted' | 'verified' | 'missing';
 
@@ -46,12 +46,14 @@ export interface AssessmentSchedule {
   ncLevel: string;
   scheduleDateTime: string;
   assessmentCenter: string;
+  labRoom?: string;
   assessor: UserSummary | string;
   assessorName: string;
   qualificationHandled: string;
   maxCandidates: number;
   candidates: AssessmentCandidate[];
   checklist: AssessmentChecklist;
+  toolsMaterialsChecklist?: string;
   status: AssessmentScheduleStatus;
 }
 
@@ -62,6 +64,8 @@ export interface AssessmentDashboardSummary {
   competentCount: number;
   notYetCompetentCount: number;
   absentNoShowCandidates: number;
+  pendingResults?: number;
+  missingRequirements?: number;
   upcomingSchedules: AssessmentSchedule[];
 }
 

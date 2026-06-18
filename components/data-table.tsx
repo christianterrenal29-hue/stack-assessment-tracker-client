@@ -12,7 +12,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Inbox, Search } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export interface Column<T> {
   key?: keyof T | string;
@@ -35,6 +37,7 @@ interface DataTableProps<T> {
   rowLink?: (row: T) => string;
   emptyMessage?: string;
   loading?: boolean;
+  error?: string;
 }
 
 export function DataTable<T extends { id?: string; _id?: string }>({
@@ -46,6 +49,7 @@ export function DataTable<T extends { id?: string; _id?: string }>({
   rowLink,
   emptyMessage = 'No data found',
   loading = false,
+  error = '',
 }: DataTableProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
@@ -131,6 +135,12 @@ export function DataTable<T extends { id?: string; _id?: string }>({
 
   return (
     <div className="space-y-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {columns.some((col) => col.searchable) && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -146,7 +156,7 @@ export function DataTable<T extends { id?: string; _id?: string }>({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-lg border">
+      <div className="overflow-hidden rounded-2xl border border-white/75 bg-white/85 shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -190,18 +200,25 @@ export function DataTable<T extends { id?: string; _id?: string }>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length + (selectable ? 1 : 0)}
-                  className="py-8 text-center"
+                  className="py-6"
                 >
-                  Loading...
+                  <div className="space-y-3">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <Skeleton key={index} className="h-10 w-full" />
+                    ))}
+                  </div>
                 </TableCell>
               </TableRow>
             ) : paginatedData.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={columns.length + (selectable ? 1 : 0)}
-                  className="py-8 text-center text-muted-foreground"
+                  className="py-10 text-center text-muted-foreground"
                 >
-                  {emptyMessage}
+                  <div className="flex flex-col items-center gap-2">
+                    <Inbox className="h-10 w-10 text-muted-foreground/70" />
+                    <span>{emptyMessage}</span>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

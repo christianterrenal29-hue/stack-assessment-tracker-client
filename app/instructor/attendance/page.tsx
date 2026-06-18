@@ -23,6 +23,7 @@ const statusClass: Record<CandidateAttendanceStatus, string> = {
   pending: 'bg-slate-100 text-slate-800',
   present: 'bg-green-100 text-green-800',
   absent: 'bg-red-100 text-red-800',
+  'no-show': 'bg-orange-100 text-orange-800',
 };
 
 export default function AttendancePage() {
@@ -64,6 +65,7 @@ export default function AttendancePage() {
 
   const present = rows.filter(({ candidate }) => candidate.attendanceStatus === 'present').length;
   const absent = rows.filter(({ candidate }) => candidate.attendanceStatus === 'absent').length;
+  const noShow = rows.filter(({ candidate }) => candidate.attendanceStatus === 'no-show').length;
   const pending = rows.filter(({ candidate }) => candidate.attendanceStatus === 'pending').length;
 
   return (
@@ -84,7 +86,7 @@ export default function AttendancePage() {
           <Card>
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Absent/No-show</p>
-              <p className="text-2xl font-bold text-red-600">{absent}</p>
+              <p className="text-2xl font-bold text-red-600">{absent + noShow}</p>
             </CardContent>
           </Card>
           <Card>
@@ -117,7 +119,8 @@ export default function AttendancePage() {
                 <option value="">All Statuses</option>
                 <option value="pending">Pending</option>
                 <option value="present">Present</option>
-                <option value="absent">Absent/No-show</option>
+                <option value="absent">Absent</option>
+                <option value="no-show">No-show</option>
               </select>
             </div>
 
@@ -152,14 +155,14 @@ export default function AttendancePage() {
                     <TableCell><Badge className={statusClass[candidate.attendanceStatus]}>{candidate.attendanceStatus}</Badge></TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
-                        {(['pending', 'present', 'absent'] as const).map((status) => (
+                        {(['pending', 'present', 'absent', 'no-show'] as const).map((status) => (
                           <Button
                             key={status}
                             variant={candidate.attendanceStatus === status ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => updateAttendance(schedule, candidate.student._id, status)}
                           >
-                            {status === 'absent' ? 'Absent/No-show' : status}
+                            {status}
                           </Button>
                         ))}
                       </div>

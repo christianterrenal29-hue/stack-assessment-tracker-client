@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Download, RefreshCw } from 'lucide-react';
+import { Download, Printer, RefreshCw } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { AssessmentDashboardSummary, AssessmentSchedule, formatCandidateName } from '@/lib/assessment-types';
 import { COURSE_OPTIONS, YEAR_LEVEL_OPTIONS } from '@/lib/school-options';
@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DashboardPage } from '@/components/dashboard-page';
 
 type ReportMode = 'reports' | 'analytics' | 'compliance';
 
@@ -57,9 +58,24 @@ const buildReportRows = (schedules: AssessmentSchedule[], type: string) => {
     }));
   }
 
-  return schedules.flatMap((schedule) =>
+  if (type === 'assessor-assignment') {
+    return schedules.map((schedule) => ({
+      title: schedule.title,
+      course: schedule.course,
+      yearLevel: schedule.yearLevel,
+      qualification: `${schedule.qualificationTitle} ${schedule.ncLevel}`,
+      dateTime: schedule.scheduleDateTime,
+      venue: schedule.assessmentCenter,
+      assessor: schedule.assessorName,
+      candidates: schedule.candidates.length,
+      status: schedule.status,
+    }));
+  }
+
+  const candidateRows = schedules.flatMap((schedule) =>
     schedule.candidates.map((candidate) => ({
       schedule: schedule.title,
+      studentId: candidate.student?.studentId,
       course: schedule.course,
       yearLevel: schedule.yearLevel,
       qualification: `${schedule.qualificationTitle} ${schedule.ncLevel}`,
@@ -70,6 +86,30 @@ const buildReportRows = (schedules: AssessmentSchedule[], type: string) => {
       attendanceSheet: schedule.checklist?.attendanceSheetStatus,
     }))
   );
+
+  if (type === 'missing-requirements') {
+    return schedules
+      .filter((schedule) =>
+        !schedule.checklist?.applicationFormSubmitted ||
+        !schedule.checklist?.selfAssessmentGuideSubmitted ||
+        !schedule.checklist?.passportPhotosSubmitted ||
+        !schedule.checklist?.assessmentFeeOrAdmissionSlip ||
+        schedule.checklist?.attendanceSheetStatus !== 'verified' ||
+        schedule.checklist?.carsRatingSheetStatus !== 'verified'
+      )
+      .map((schedule) => ({
+        title: schedule.title,
+        course: schedule.course,
+        yearLevel: schedule.yearLevel,
+        qualification: `${schedule.qualificationTitle} ${schedule.ncLevel}`,
+        dateTime: schedule.scheduleDateTime,
+        venue: schedule.assessmentCenter,
+        assessor: schedule.assessorName,
+        status: schedule.status,
+      }));
+  }
+
+  return candidateRows;
 };
 
 export function AnalyticsReportPage({ mode }: { mode: ReportMode }) {
@@ -110,17 +150,26 @@ export function AnalyticsReportPage({ mode }: { mode: ReportMode }) {
 
   const reports = [
     ['assessment-schedule', 'Assessment Schedule Report', 'Schedules by qualification, venue, assessor, capacity, and status.'],
-    ['candidate-attendance', 'Candidate Assessment Attendance Report', 'Present, absent, and pending assessment attendance per schedule.'],
-    ['competency-result', 'Competency Result Summary', 'Competent versus Not Yet Competent candidate outcomes.'],
-    ['cars-summary', 'CARS-style Summary', 'Candidate result rows with CARS/rating sheet and attendance sheet status.'],
+    ['candidate-list', 'Candidate List', 'Candidate roster by course, year level, qualification, attendance, and result.'],
+    ['assessment-attendance', 'Assessment Attendance Sheet', 'Candidate attendance rows with schedule, qualification, venue, and status.'],
+    ['candidate-result', 'Candidate Result Report', 'Candidate competency result register by assessment schedule.'],
+    ['competency-result-summary', 'Competency Result Summary', 'Competent, Not Yet Competent, pending, absent, and no-show outcomes.'],
+    ['cars-summary', 'CARS-style Summary', 'TESDA CARS-style candidate results with attendance sheet and rating sheet status.'],
+    ['assessor-assignment', 'Assessor Assignment Report', 'Assessment assignments by assessor, schedule, qualification, and venue.'],
+    ['missing-requirements', 'Missing Requirements Report', 'Schedules with incomplete TESDA requirements or unverified sheets.'],
+  ] as const;
+
+  const forms = [
+    ['attendance-sheet', 'Printable Attendance Sheet', 'Candidate attendance rows with schedule, qualification, venue, and status.'],
+    ['candidate-list', 'Printable Candidate List', 'Candidate roster grouped from filtered assessment schedules.'],
+    ['assessment-result-sheet', 'Printable Assessment Result Sheet', 'Competency result register for TESDA assessment documentation.'],
   ] as const;
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <DashboardPage>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">{copy.title}</h1>
+            <h1 className="text-2xl font-semibold text-[#0b2f57] sm:text-3xl">{copy.title}</h1>
             <p className="mt-1 max-w-3xl text-muted-foreground">{copy.description}</p>
           </div>
           <Button variant="outline" onClick={loadData} disabled={isLoading}>
@@ -136,7 +185,7 @@ export function AnalyticsReportPage({ mode }: { mode: ReportMode }) {
         )}
 
         {isLoading ? (
-          <Card>
+          <Card className="border-white/75 bg-white/85 shadow-sm">
             <CardHeader>
               <CardTitle>Loading assessment reports...</CardTitle>
               <CardDescription>Fetching schedules and candidate results.</CardDescription>
@@ -164,7 +213,7 @@ export function AnalyticsReportPage({ mode }: { mode: ReportMode }) {
                 ['Not Yet Competent', data?.summary.notYetCompetentCount ?? 0],
                 ['Absent/No-show', data?.summary.absentNoShowCandidates ?? 0],
               ].map(([label, value]) => (
-                <Card key={label}>
+                <Card key={label} className="border-white/75 bg-white/85 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                   <CardContent className="pt-6">
                     <p className="text-sm text-muted-foreground">{label}</p>
                     <p className="text-2xl font-bold">{value}</p>
@@ -177,7 +226,7 @@ export function AnalyticsReportPage({ mode }: { mode: ReportMode }) {
               {reports.map(([type, title, description]) => {
                 const rows = buildReportRows(schedules, type);
                 return (
-                  <Card key={type}>
+                  <Card key={type} className="border-white/75 bg-white/85 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                     <CardHeader>
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -194,7 +243,7 @@ export function AnalyticsReportPage({ mode }: { mode: ReportMode }) {
                       <p className="mb-3 text-sm text-muted-foreground">{rows.length} row(s)</p>
                       <div className="space-y-2">
                         {rows.slice(0, 5).map((row, index) => (
-                          <div key={index} className="rounded-md border p-3 text-sm">
+                          <div key={index} className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-sm">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-medium">{'candidate' in row ? row.candidate : row.title}</span>
                               {'status' in row && <Badge>{row.status}</Badge>}
@@ -213,7 +262,35 @@ export function AnalyticsReportPage({ mode }: { mode: ReportMode }) {
               })}
             </div>
 
-            <Card>
+            <Card className="border-white/75 bg-white/85 shadow-sm">
+              <CardHeader>
+                <CardTitle>Printable Forms</CardTitle>
+                <CardDescription>Print TESDA-ready forms using the current course and year level filters.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-3">
+                {forms.map(([type, title, description]) => {
+                  const rows = buildReportRows(schedules, type);
+                  return (
+                    <div key={type} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="font-semibold">{title}</h3>
+                          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+                        </div>
+                        <Printer className="h-5 w-5 shrink-0 text-primary" />
+                      </div>
+                      <p className="mb-4 text-sm text-muted-foreground">{rows.length} printable row(s)</p>
+                      <Button className="w-full" variant="outline" onClick={() => window.print()}>
+                        <Printer className="mr-2 h-4 w-4" />
+                        Print
+                      </Button>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/75 bg-white/85 shadow-sm">
               <CardHeader>
                 <CardTitle>Checklist Completion</CardTitle>
                 <CardDescription>TESDA documentary requirements across all schedules.</CardDescription>
@@ -227,7 +304,7 @@ export function AnalyticsReportPage({ mode }: { mode: ReportMode }) {
                   ['Assessment Attendance Sheets Verified', schedules.filter((schedule) => schedule.checklist?.attendanceSheetStatus === 'verified').length],
                   ['CARS/Rating Sheets Verified', schedules.filter((schedule) => schedule.checklist?.carsRatingSheetStatus === 'verified').length],
                 ].map(([label, value]) => (
-                  <div key={label} className="rounded-md border p-3">
+                  <div key={label} className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
                     <p className="text-sm text-muted-foreground">{label}</p>
                     <p className="text-xl font-bold">{value}/{schedules.length}</p>
                   </div>
@@ -238,7 +315,6 @@ export function AnalyticsReportPage({ mode }: { mode: ReportMode }) {
             <p className="text-xs text-muted-foreground">Candidate records included: {candidates.length}</p>
           </>
         )}
-      </div>
-    </div>
+    </DashboardPage>
   );
 }

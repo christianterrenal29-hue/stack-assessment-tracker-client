@@ -29,10 +29,10 @@ export function Modal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className={`bg-white rounded-lg shadow-lg w-full ${sizeClasses[size]} max-h-96 overflow-y-auto`}>
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+      <div className={`w-full ${sizeClasses[size]} max-h-[85vh] overflow-y-auto rounded-2xl border border-white/80 bg-white shadow-2xl shadow-slate-950/15`}>
+        <div className="flex items-center justify-between border-b border-slate-100 p-6">
+          <h2 className="text-xl font-semibold text-[#0b2f57]">{title}</h2>
           <Button
             variant="ghost"
             size="sm"
@@ -44,7 +44,7 @@ export function Modal({
         </div>
         <div className="p-6">{children}</div>
         {footer && (
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
+          <div className="flex justify-end gap-2 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
             {footer}
           </div>
         )}

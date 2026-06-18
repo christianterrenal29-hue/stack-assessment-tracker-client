@@ -9,6 +9,9 @@ import { Plus, Edit2, Trash2, Building2 } from 'lucide-react';
 import useSWR from 'swr';
 import { apiClient } from '@/lib/api-client';
 import { LoadingSkeleton } from '@/components/loading-skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
+import { DashboardPage } from '@/components/dashboard-page';
 
 interface Institution {
   _id: string;
@@ -31,8 +34,11 @@ export default function InstitutionsPage() {
     phoneNumber: '',
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const { data: institutions, mutate, isLoading } = useSWR<Institution[]>(
+  const { data: institutions, mutate, isLoading, error: loadError } = useSWR<Institution[]>(
     '/institutions',
     (url: string) => apiClient.get<Institution[]>(url)
   );
@@ -61,6 +67,7 @@ export default function InstitutionsPage() {
       setIsModalOpen(false);
       mutate();
     } catch (error) {
+      setError(error instanceof Error ? error.message : 'Error saving institution');
       console.error('Error saving institution:', error);
     }
   };
@@ -77,14 +84,18 @@ export default function InstitutionsPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this institution?')) {
-      try {
-        await apiClient.delete(`/institutions/${id}`);
-        mutate();
-      } catch (error) {
-        console.error('Error deleting institution:', error);
-      }
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      await apiClient.delete(`/institutions/${deleteId}`);
+      setDeleteId(null);
+      mutate();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Error deleting institution');
+      console.error('Error deleting institution:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -135,7 +146,7 @@ export default function InstitutionsPage() {
           <Button
             variant="destructive"
             size="sm"
-            onClick={() => handleDelete(row._id)}
+            onClick={() => setDeleteId(row._id)}
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -147,15 +158,19 @@ export default function InstitutionsPage() {
   if (isLoading) return <LoadingSkeleton />;
 
   return (
-    <div className="p-8">
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Institutions</h1>
+    <DashboardPage>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-3xl font-bold text-foreground">Institutions</h1>
           <Button onClick={() => setIsModalOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Institution
           </Button>
         </div>
+        {(error || loadError) && (
+          <Alert variant="destructive">
+            <AlertDescription>{error || loadError.message || 'Failed to load institutions'}</AlertDescription>
+          </Alert>
+        )}
 
         <Card>
           <CardHeader>
@@ -170,7 +185,7 @@ export default function InstitutionsPage() {
           </CardContent>
         </Card>
 
-        <DataTable data={filteredInstitutions} columns={columns} />
+        <DataTable data={filteredInstitutions} columns={columns} emptyMessage="No institutions found." />
 
         {isModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -234,7 +249,14 @@ export default function InstitutionsPage() {
             </Card>
           </div>
         )}
-      </div>
-    </div>
+        <ConfirmDeleteDialog
+          open={Boolean(deleteId)}
+          onOpenChange={(open) => !open && setDeleteId(null)}
+          onConfirm={handleDelete}
+          isDeleting={isDeleting}
+          title="Delete institution?"
+          description="This will remove the selected institution record from the system."
+        />
+    </DashboardPage>
   );
 }

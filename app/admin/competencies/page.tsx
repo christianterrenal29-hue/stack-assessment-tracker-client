@@ -9,6 +9,9 @@ import { Plus, Edit2, Trash2, Target } from 'lucide-react';
 import useSWR from 'swr';
 import { apiClient } from '@/lib/api-client';
 import { LoadingSkeleton } from '@/components/loading-skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
+import { DashboardPage } from '@/components/dashboard-page';
 
 interface Competency {
   _id: string;
@@ -31,8 +34,11 @@ export default function CompetenciesPage() {
     assessmentType: 'practical',
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const { data: competencies, mutate, isLoading } = useSWR<Competency[]>(
+  const { data: competencies, mutate, isLoading, error: loadError } = useSWR<Competency[]>(
     '/competencies',
     (url: string) => apiClient.get<Competency[]>(url)
   );
@@ -66,6 +72,7 @@ export default function CompetenciesPage() {
       setIsModalOpen(false);
       mutate();
     } catch (error) {
+      setError(error instanceof Error ? error.message : 'Error saving competency');
       console.error('Error saving competency:', error);
     }
   };
@@ -82,14 +89,18 @@ export default function CompetenciesPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this competency?')) {
-      try {
-        await apiClient.delete(`/competencies/${id}`);
-        mutate();
-      } catch (error) {
-        console.error('Error deleting competency:', error);
-      }
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      await apiClient.delete(`/competencies/${deleteId}`);
+      setDeleteId(null);
+      mutate();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Error deleting competency');
+      console.error('Error deleting competency:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -139,7 +150,7 @@ export default function CompetenciesPage() {
           <Button
             variant="destructive"
             size="sm"
-            onClick={() => handleDelete(row._id)}
+            onClick={() => setDeleteId(row._id)}
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -151,15 +162,19 @@ export default function CompetenciesPage() {
   if (isLoading) return <LoadingSkeleton />;
 
   return (
-    <div className="p-8">
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Competencies</h1>
+    <DashboardPage>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-3xl font-bold text-foreground">Competencies</h1>
           <Button onClick={() => setIsModalOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Competency
           </Button>
         </div>
+        {(error || loadError) && (
+          <Alert variant="destructive">
+            <AlertDescription>{error || loadError.message || 'Failed to load competencies'}</AlertDescription>
+          </Alert>
+        )}
 
         <Card>
           <CardHeader>
@@ -174,7 +189,7 @@ export default function CompetenciesPage() {
           </CardContent>
         </Card>
 
-        <DataTable data={filteredCompetencies} columns={columns} />
+        <DataTable data={filteredCompetencies} columns={columns} emptyMessage="No competencies found." />
 
         {isModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -248,7 +263,14 @@ export default function CompetenciesPage() {
             </Card>
           </div>
         )}
-      </div>
-    </div>
+        <ConfirmDeleteDialog
+          open={Boolean(deleteId)}
+          onOpenChange={(open) => !open && setDeleteId(null)}
+          onConfirm={handleDelete}
+          isDeleting={isDeleting}
+          title="Delete competency?"
+          description="This will remove the selected competency record from the system."
+        />
+    </DashboardPage>
   );
 }

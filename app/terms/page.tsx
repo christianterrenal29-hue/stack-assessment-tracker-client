@@ -10,10 +10,9 @@ export default function TermsPage() {
           <CardHeader>
             <CardTitle>Terms of Service</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm text-muted-foreground">
+          <CardContent className="space-y-5 text-sm leading-7 text-muted-foreground">
             <p>
-              TESDA Assessment Tracker is intended for authorized training, assessment, reporting,
-              compliance, and learner progress monitoring activities.
+              TESDA Assessment Tracker / Assessment Tracker for Student Records and Monitoring System is intended for authorized training, assessment, reporting, compliance, and learner progress monitoring activities.
             </p>
             <p>
               Users are responsible for keeping credentials confidential and for entering accurate
@@ -22,6 +21,12 @@ export default function TermsPage() {
             <p>
               Records, documents, grades, and audit trails should only be created, updated, exported,
               or deleted for legitimate institutional purposes.
+            </p>
+            <p>
+              Unauthorized access, false entries, tampering with candidate results, misuse of student documents, or attempts to bypass role restrictions are prohibited and may be subject to school disciplinary action.
+            </p>
+            <p>
+              Reports generated from the system should be reviewed before official submission. The institution remains responsible for validating assessment records, candidate eligibility, and documentary requirements.
             </p>
             <Button asChild variant="outline">
               <Link to="/auth/login">Back to login</Link>

@@ -9,6 +9,9 @@ import { Plus, Edit2, Trash2, Users } from 'lucide-react';
 import useSWR from 'swr';
 import { apiClient } from '@/lib/api-client';
 import { LoadingSkeleton } from '@/components/loading-skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
+import { DashboardPage } from '@/components/dashboard-page';
 
 interface Department {
   _id: string;
@@ -29,8 +32,11 @@ export default function DepartmentsPage() {
     head: '',
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const { data: departments, mutate, isLoading } = useSWR<Department[]>(
+  const { data: departments, mutate, isLoading, error: loadError } = useSWR<Department[]>(
     '/departments',
     (url: string) => apiClient.get<Department[]>(url)
   );
@@ -63,6 +69,7 @@ export default function DepartmentsPage() {
       setIsModalOpen(false);
       mutate();
     } catch (error) {
+      setError(error instanceof Error ? error.message : 'Error saving department');
       console.error('Error saving department:', error);
     }
   };
@@ -78,14 +85,18 @@ export default function DepartmentsPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this department?')) {
-      try {
-        await apiClient.delete(`/departments/${id}`);
-        mutate();
-      } catch (error) {
-        console.error('Error deleting department:', error);
-      }
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      await apiClient.delete(`/departments/${deleteId}`);
+      setDeleteId(null);
+      mutate();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Error deleting department');
+      console.error('Error deleting department:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -131,7 +142,7 @@ export default function DepartmentsPage() {
           <Button
             variant="destructive"
             size="sm"
-            onClick={() => handleDelete(row._id)}
+            onClick={() => setDeleteId(row._id)}
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -143,15 +154,19 @@ export default function DepartmentsPage() {
   if (isLoading) return <LoadingSkeleton />;
 
   return (
-    <div className="p-8">
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Departments</h1>
+    <DashboardPage>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-3xl font-bold text-foreground">Departments</h1>
           <Button onClick={() => setIsModalOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Department
           </Button>
         </div>
+        {(error || loadError) && (
+          <Alert variant="destructive">
+            <AlertDescription>{error || loadError.message || 'Failed to load departments'}</AlertDescription>
+          </Alert>
+        )}
 
         <Card>
           <CardHeader>
@@ -166,7 +181,7 @@ export default function DepartmentsPage() {
           </CardContent>
         </Card>
 
-        <DataTable data={filteredDepartments} columns={columns} />
+        <DataTable data={filteredDepartments} columns={columns} emptyMessage="No departments found." />
 
         {isModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -228,7 +243,14 @@ export default function DepartmentsPage() {
             </Card>
           </div>
         )}
-      </div>
-    </div>
+        <ConfirmDeleteDialog
+          open={Boolean(deleteId)}
+          onOpenChange={(open) => !open && setDeleteId(null)}
+          onConfirm={handleDelete}
+          isDeleting={isDeleting}
+          title="Delete department?"
+          description="This will remove the selected department record from the system."
+        />
+    </DashboardPage>
   );
 }

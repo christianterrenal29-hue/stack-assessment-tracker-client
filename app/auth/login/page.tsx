@@ -1,13 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { getDashboardPath } from '@/lib/routes';
 
@@ -21,16 +20,16 @@ export default function LoginPage() {
     password: '',
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setFormData((current) => ({
+      ...current,
       [name]: value,
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError('');
     setIsLoading(true);
 
@@ -45,21 +44,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-accent/10 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(135deg,#f8fafc_0%,#eef6f1_48%,#edf4fb_100%)] p-4">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground">TESDA Tracker</h1>
-          <p className="text-muted-foreground mt-2">Assessment Management System</p>
+        <div className="mb-8 text-center">
+          <div className="mb-5 flex items-center justify-center gap-5">
+            <img src="/tesda-logo.png" alt="TESDA logo" className="h-16 w-16 rounded-2xl bg-white object-contain p-2 shadow-sm" />
+            <img src="/toplink-logo.png" alt="Top Link Global College logo" className="h-16 w-16 rounded-2xl bg-white object-contain p-2 shadow-sm" />
+          </div>
+          <h1 className="text-2xl font-semibold text-[#0b2f57] sm:text-3xl">TESDA Assessment Tracker System</h1>
+          <p className="mt-2 text-muted-foreground">Assessment Tracker for Student Records and Monitoring System</p>
         </div>
 
-        {/* Login Card */}
-        <Card>
+        <Card className="border-white/80 bg-white/90 shadow-xl shadow-slate-900/5">
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
-            <CardDescription>
-              Enter your credentials to access the system
-            </CardDescription>
+            <CardDescription>Enter your credentials to access the system</CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
@@ -94,7 +93,7 @@ export default function LoginPage() {
                   id="password"
                   name="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                   value={formData.password}
                   onChange={handleInputChange}
                   required
@@ -102,34 +101,27 @@ export default function LoginPage() {
                 />
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
+              <Button type="submit" className="w-full bg-[#0b2f57] hover:bg-[#123f70]" disabled={isLoading}>
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
 
             <div className="mt-4 text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{' '}
-              <Link to="/auth/register"
-                className="text-primary hover:underline font-medium"
-              >
+              <Link to="/auth/register" className="font-medium text-primary hover:underline">
                 Register here
               </Link>
             </div>
           </CardContent>
         </Card>
 
-        {/* Footer */}
         <div className="mt-8 text-center text-xs text-muted-foreground">
-          <p>TESDA Assessment Tracker © 2024</p>
+          <p>TESDA Assessment Tracker / Top Link Global College Inc.</p>
           <p className="mt-2">
             <Link to="/privacy" className="hover:underline">
               Privacy Policy
             </Link>
-            {' '} · {' '}
+            {' | '}
             <Link to="/terms" className="hover:underline">
               Terms of Service
             </Link>
